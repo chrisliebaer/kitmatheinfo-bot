@@ -1,5 +1,6 @@
 mod config;
 mod toc;
+mod self_management;
 
 use env_logger::Target;
 #[allow(unused_imports)]
@@ -9,13 +10,7 @@ use std::{
 	fs::File,
 	io::Read,
 };
-use poise::{
-	ErrorContext,
-	Event,
-	Framework,
-	serenity_prelude::GatewayIntents,
-};
-
+use poise::{ErrorContext, Event, Framework, serenity_prelude::GatewayIntents};
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, AppState, Error>;
@@ -87,10 +82,19 @@ async fn on_error(error: Error, ctx: poise::ErrorContext<'_, AppState, Error>) {
 	match ctx {
 		Setup =>
 			panic!("Failed to start bot: {:?}", error),
-		Command(ctx) =>
-			error!("Error in command `{}`: {:?}", ctx.command().name(), error),
-		Listener(event) =>
-			error!("Error handling event: {}: for event {:?}", error, event),
+		Command(ctx) => {
+			let send_result = ctx.ctx().send(|m| {
+				m.embed(|e| {
+					e.title("Fehler").description(&error)
+				}).ephemeral(true)
+			}).await;
+			if let Err(_) = send_result {
+				error!("Error while handling error: {:?}", error);
+			};
+			error!("Error in command `{}`: {:?}", ctx.command().name(), error);
+		}
+
+		Listener(event) => error!("Error handling event: {}: for event {:?}", error, event),
 		Autocomplete(ctx) =>
 			error!("Error in auto-completion for command `{}`: {:?}", ctx.ctx.command.slash_or_context_menu_name(), error),
 	}
@@ -105,27 +109,25 @@ async fn main() {
 			.init();
 
 	let args = std::env::args().collect::<Vec<_>>();
-	info!("args: {:?}", args);
 	let file = args.get(1).expect("No config file given");
-
 	let mut file = File::open(file).unwrap();
 	let mut content = String::new();
 	file.read_to_string(&mut content).unwrap();
-
 	let config = toml::from_str::<Config>(content.as_str()).unwrap();
 
 	let builder = poise::Framework::build()
 			.token(&config.bot_token)
 			.client_settings(|b| {
 				b.intents(
-					GatewayIntents::GUILD_MESSAGES |
+					GatewayIntents::GUILDS |
+							GatewayIntents::GUILD_MESSAGES |
 							GatewayIntents::DIRECT_MESSAGES |
 							GatewayIntents::GUILD_INTEGRATIONS
 				)
 			})
 			.user_data_setup(move |_ctx, _ready, _framework| Box::pin(async move {
 				Ok(AppState {
-					config
+					config,
 				})
 			}))
 			.command(help(), |f| f)
@@ -152,5 +154,6 @@ async fn main() {
 
 	// TODO: perform proper shutdown
 	let builder = toc::register_commands(builder);
+	let builder = self_management::register_commands(builder);
 	builder.run().await.unwrap();
 }

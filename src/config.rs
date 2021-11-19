@@ -9,6 +9,7 @@ use serde::de::{Error, Visitor};
 #[serde(deny_unknown_fields)]
 pub struct Config {
 	pub bot_token: String,
+	pub mongodb: String,
 	pub welcome: FileReference,
 	pub self_managment: SelfManagement,
 	pub toc: Vec<TableOfContentEntry>,
@@ -27,6 +28,7 @@ pub struct FileReference {
 pub struct SelfManagement {
 	pub category: u64,
 	pub ownership: bool,
+	pub limit: u64,
 	pub make_channel_admin: bool,
 	pub abandon_after: u64,
 	pub claiming: bool,
