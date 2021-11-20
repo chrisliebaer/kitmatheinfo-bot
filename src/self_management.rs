@@ -1,3 +1,4 @@
+use std::time::Duration;
 #[allow(unused_imports)]
 use log::{trace, debug, info, warn, error};
 use crate::{AppState, Context, Error};
@@ -9,6 +10,8 @@ use poise::{
 };
 use poise::serenity::prelude::Mentionable;
 use poise::serenity_prelude::{ChannelId, CreateEmbed, GuildId};
+
+const CHANNEL_EDIT_TIMEOUT: Duration = Duration::from_secs(10);
 
 pub fn register_commands(builder: FrameworkBuilder<AppState, Error>) -> FrameworkBuilder<AppState, Error> {
 	builder.command(channel_dummy(), |f| {
@@ -90,7 +93,10 @@ async fn update_channel(
 				.name(name.as_ref().unwrap_or(&channel.name))
 				.topic(beschreibung.as_ref().unwrap_or(channel.topic.as_ref().unwrap()))
 				.nsfw(nsfw.unwrap_or(channel.nsfw))
-	}).await?;
+	});
+
+	// channel edits have absolute bonkers rate limits, so to prevent a lot of work to stack up, we use aggressives timeouts
+	let after = tokio::time::timeout(CHANNEL_EDIT_TIMEOUT, after).await??;
 
 	// inform user about success
 	ctx.send(|m| {

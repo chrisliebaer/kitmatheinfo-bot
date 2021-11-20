@@ -11,7 +11,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 serde_with = "1.11"
 toml = "0.5"
-tokio = { version = "1.1.1", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.1.1", features = ["macros", "rt-multi-thread", "time"] }
 serenity = { version = "0.10.2", default-features = false, features = ["builder", "cache", "client", "gateway", "model", "utils", "rustls_backend", "unstable_discord_api"] }
 poise = { git = "https://github.com/kangalioo/poise", rev = "05b2fc5144239a58f27d5003ca245e6a8c2e2b6a" }
 linked-hash-map = { version = "0.5", features = ["serde_impl"]}
