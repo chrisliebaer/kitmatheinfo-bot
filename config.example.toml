@@ -1,0 +1,66 @@
+# Discord bot token
+bot_token = "YOUR BOT TOKEN HIER"
+
+# MongoDB host
+mongodb = "mongodb://mongodb:27017" # not yet implemented
+
+# File with top level message that will be posted as welcome text.
+welcome = "welcome.md"
+
+# Buttons that will be added (in order of definition) to welcome message
+toc = [
+    { icon = "👮", label = "Rules", file = "rules.md" },
+    { icon = "🏘️", label = "About Us", file = "structure.md" },
+]
+
+# Configures self management category
+[self_managment]
+
+# Category in which channels are managed by users
+category = 123456789
+
+# Ownership enables users to own the channel they created. This means that they exclusively are permitted to modify or delete the channel.
+ownership = true # not yet implemented
+
+# Will give current owner permissions to manage channel within Discord. Includes: description, pins and message deletion
+make_channel_admin = true # not yet implemented
+
+# Time after last message (in seconds) in channel until channel will become abandoned and ownership will no longer be enforced. (Bot's do not count)
+abandon_after = 864000 # 10 days # not yet implemented
+
+# Number of channels a user can own
+limit = 5 # not yet implemented
+
+# Enables claiming of abandoned channels by everyone. Can also be used to refresh ownership by current owner.
+claiming = true # not yet implemented
+
+# Enable logging in given channel (comment to disable)
+logging = 123456789
+
+
+[self_assignments]
+
+# Text for role assignment button
+label = "Roles!"
+
+# Icon for role assignment button
+icon = "👥"
+
+# Text posted together with role assignment selection. Keep it short!
+prolog = "roles.md"
+
+[assignments.roles1]
+title = "Pick your Roles1:"
+roles = [
+    { icon = "🖥️", label = "Role 1", subscript = "This is role 1.", role = 123456789 },
+    { icon = "🧮", label = "Role 2", subscript = "Probably role 2", role = 123456789 },
+    { icon = "💰", label = "Role 3", role = 123456789 }, # Note: role has no subscript
+]
+
+[assignments.roles2]
+title = "Pick your Roles2:"
+roles = [
+    { icon = "💀", label = "Role 4", subscript = "Role 4. So many roles", role = 123456789 },
+    { icon = "🍬", label = "Role 5", subscript = "u still counting?", role = 123456789 },
+    { icon = "<a:fancy_emote:123456789>", label = "Role 6", role = 123456789 }, # can even use server emotes!
+]
