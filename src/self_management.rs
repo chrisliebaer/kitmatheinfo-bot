@@ -23,12 +23,12 @@ pub fn register_commands(builder: FrameworkBuilder<AppState, Error>) -> Framewor
 }
 
 /// Enthält Befehle für den selbstverwalteten Bereich des Servers.
-#[poise::command(slash_command, rename = "channel")]
+#[poise::command(slash_command, rename = "kanal")]
 async fn channel_dummy(_ctx: Context<'_>) -> Result<(), Error> {
 	unreachable!() // Upper commands can never be called from discord, all good.
 }
 
-/// Erstellt einen neuen Channel.
+/// Erstellt einen neuen Kanal.
 #[poise::command(slash_command, rename = "erstellen")]
 async fn create_channel(
 	ctx: Context<'_>,
@@ -60,7 +60,7 @@ async fn create_channel(
 	Ok(())
 }
 
-/// Modifiziert den angegebenen Channel.
+/// Modifiziert den angegebenen Kanal.
 #[poise::command(slash_command, rename = "ändern")]
 async fn update_channel(
 	ctx: Context<'_>,
@@ -110,7 +110,7 @@ async fn update_channel(
 	Ok(())
 }
 
-/// Löscht den angegebenen Channel.
+/// Löscht den angegebenen Kanal.
 #[poise::command(slash_command, rename = "löschen")]
 async fn delete_channel(
 	ctx: Context<'_>,

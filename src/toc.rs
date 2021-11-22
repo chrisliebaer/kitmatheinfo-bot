@@ -21,7 +21,7 @@ pub fn register_commands(builder: FrameworkBuilder<AppState, Error>) -> Framewor
 	builder.command(post_welcome_message(), |f| f)
 }
 
-/// Erstellt die Begrüßungsnachricht im angegebenen Channel.
+/// Erstellt die Begrüßungsnachricht im angegebenen Kanal.
 #[poise::command(
 prefix_command,
 rename = "welcome",
