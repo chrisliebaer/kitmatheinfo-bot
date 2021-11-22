@@ -33,6 +33,7 @@ pub struct SelfManagement {
 	pub abandon_after: u64,
 	pub claiming: bool,
 	pub logging: Option<u64>,
+	pub logging_detailed: Option<u64>,
 }
 
 #[derive(Debug, Deserialize)]

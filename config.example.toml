@@ -37,6 +37,8 @@ claiming = true # not yet implemented
 # Enable logging in given channel (comment to disable)
 logging = 123456789
 
+# Detailed logging will include user as well (Be carefull, might cause havok in your community)
+logging_detailed = 123456789
 
 [self_assignments]
 

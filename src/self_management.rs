@@ -9,7 +9,7 @@ use poise::{
 	FrameworkBuilder,
 };
 use poise::serenity::prelude::Mentionable;
-use poise::serenity_prelude::{ChannelId, CreateEmbed, GuildId};
+use poise::serenity_prelude::{ChannelId, CreateEmbed, GuildId, User};
 
 const CHANNEL_EDIT_TIMEOUT: Duration = Duration::from_secs(10);
 
@@ -53,7 +53,7 @@ async fn create_channel(
 		m.content(format!("Ich hab deinen Channel erstellt: {}", channel.mention()))
 	}).await?;
 
-	log_modification(&ctx, "Channel erstellt", None, Some(&channel)).await?;
+	log_both(&ctx, "Channel erstellt", None, Some(&channel)).await?;
 
 	sort(&ctx, &guild_id).await?;
 
@@ -102,7 +102,7 @@ async fn update_channel(
 	ctx.send(|m| {
 		m.content(format!("Ich hab den Channel modifiziert: {}", channel.name()))
 	}).await?;
-	log_modification(&ctx, "Channel aktualisiert", Some(&channel), Some(&after)).await?;
+	log_both(&ctx, "Channel aktualisiert", Some(&channel), Some(&after)).await?;
 
 	// sort channel list to maintain peace and harmony
 	sort(&ctx, &guild).await?;
@@ -139,7 +139,26 @@ async fn delete_channel(
 	ctx.send(|m| {
 		m.content(format!("Ich hab den Channel gelöscht: {}", channel.name()))
 	}).await?;
-	log_modification(&ctx, "Channel gelöscht", Some(&channel), None).await?;
+
+	log_both(&ctx, "Channel gelöscht", Some(&channel), None).await?;
+
+	Ok(())
+}
+
+async fn log_both(
+	ctx: &Context<'_>,
+	summary: &str,
+	before: Option<&GuildChannel>,
+	after: Option<&GuildChannel>,
+) -> Result<(), Error> {
+	let cfg = &ctx.data().config.self_managment;
+	let user = ctx.author();
+
+	// logging for everyone without user
+	log_modification(ctx, &cfg.logging.map(|id|ChannelId(id)), summary, before, after, None).await?;
+
+	// internal logging with executing user
+	log_modification(ctx, &cfg.logging_detailed.map(|id|ChannelId(id)), summary, before, after, Some(user)).await?;
 
 	Ok(())
 }
@@ -147,12 +166,15 @@ async fn delete_channel(
 /// Logs modifications in the configured logging channel for transparency and general awareness.
 async fn log_modification(
 	ctx: &Context<'_>,
+	channel_id: &Option<ChannelId>,
 	summary: &str,
 	before: Option<&GuildChannel>,
 	after: Option<&GuildChannel>,
+	user: Option<&User>,
 ) -> Result<(), Error> {
+
 	// check if logging is enabled
-	let log_channel: ChannelId = match &ctx.data().config.self_managment.logging {
+	let channel_id: ChannelId = match channel_id {
 		None => return Ok(()), // do nothing and return
 		Some(channel_id) => channel_id.to_owned()
 	}.into();
@@ -211,8 +233,12 @@ async fn log_modification(
 			},
 	};
 
+	if let Some(user) = user {
+		e.field("Nutzer", user, false);
+	}
+
 	if field_set {
-		log_channel.send_message(ctx.discord(), |m| {
+		channel_id.send_message(ctx.discord(), |m| {
 			m.set_embed(e);
 			m
 		}).await?;
