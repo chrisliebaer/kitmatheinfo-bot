@@ -40,7 +40,7 @@ async fn create_channel(
 	let app = ctx.data();
 	let sm = &app.config.self_managment;
 
-	let guild_id = ctx.guild_id().ok_or("not in guild")?;
+	let guild_id = ctx.guild_id().ok_or("Dieser Befehl kann nur auf einem Server ausgeführt werden.")?;
 
 	// create channel in category (will fail if in different guild)
 	ctx.defer_ephemeral().await?;
@@ -50,10 +50,10 @@ async fn create_channel(
 
 	// inform user about success
 	ctx.send(|m| {
-		m.content(format!("Ich hab deinen Channel erstellt: {}", channel.mention()))
+		m.content(format!("Ich hab deinen Kanal erstellt: {}", channel.mention()))
 	}).await?;
 
-	log_both(&ctx, "Channel erstellt", None, Some(&channel)).await?;
+	log_both(&ctx, "Kanal erstellt", None, Some(&channel)).await?;
 
 	sort(&ctx, &guild_id).await?;
 
@@ -83,7 +83,7 @@ async fn update_channel(
 	}
 
 	// check if channel actually belong into self managed category
-	if &app.config.self_managment.category != channel.parent_id.ok_or("channel has no parent")?.as_u64() {
+	if &app.config.self_managment.category != channel.parent_id.ok_or("Dieser Kanal befindet sich nicht unterhalb einer Kategorie.")?.as_u64() {
 		return Err(Error::from("Dieser Channel befindet sich nicht in der richtigen Kategorie und kann nicht gelöscht werden."));
 	}
 
@@ -123,12 +123,12 @@ async fn delete_channel(
 	// check if channel belongs to same guild (prevents deletion from outside guilds)
 	let guild = ctx.guild_id().ok_or("Dieser Befehl kann nur in einem Server ausgeführt werden.")?;
 	if channel.guild_id != guild {
-		return Err(Error::from("Dieser Channel ist nicht von diesem Server"));
+		return Err(Error::from("Dieser Channel ist nicht von diesem Server."));
 	}
 
 	// check if channel actually belong into self managed category
-	if &app.config.self_managment.category != channel.parent_id.ok_or("channel has no parent")?.as_u64() {
-		return Err(Error::from("Dieser Channel befindet sich nicht in der richtigen Kategorie und kann nicht gelöscht werden."));
+	if &app.config.self_managment.category != channel.parent_id.ok_or("Dieser Kanal befindet sich nicht unterhalb einer Kategorie.")?.as_u64() {
+		return Err(Error::from("Dieser Kanal befindet sich nicht in der richtigen Kategorie und kann nicht gelöscht werden."));
 	}
 
 	// perform deletion
@@ -137,10 +137,10 @@ async fn delete_channel(
 
 	// inform user about success
 	ctx.send(|m| {
-		m.content(format!("Ich hab den Channel gelöscht: {}", channel.name()))
+		m.content(format!("Ich hab den Kanal gelöscht: {}", channel.name()))
 	}).await?;
 
-	log_both(&ctx, "Channel gelöscht", Some(&channel), None).await?;
+	log_both(&ctx, "Kanal gelöscht", Some(&channel), None).await?;
 
 	Ok(())
 }
