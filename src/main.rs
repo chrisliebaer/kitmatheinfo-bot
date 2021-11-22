@@ -115,6 +115,8 @@ async fn main() {
 	file.read_to_string(&mut content).unwrap();
 	let config = toml::from_str::<Config>(content.as_str()).unwrap();
 
+	info!("This is a log message and we need it!");
+
 	let builder = poise::Framework::build()
 			.token(&config.bot_token)
 			.client_settings(|b| {
