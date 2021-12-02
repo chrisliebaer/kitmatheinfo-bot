@@ -65,7 +65,7 @@ async fn create_channel(
 async fn update_channel(
 	ctx: Context<'_>,
 	#[description = "Der Name des Channels."]
-	channel: GuildChannel,
+	kanal: GuildChannel,
 	#[description = "Eine neuer Name."]
 	name: Option<String>,
 	#[description = "Eine neue Beschreibung."]
@@ -78,21 +78,21 @@ async fn update_channel(
 	// TODO: duplicated code with delete command, fix that
 	// check if channel belongs to same guild (prevents deletion from outside guilds)
 	let guild = ctx.guild_id().ok_or("Dieser Befehl kann nur in einem Server ausgeführt werden.")?;
-	if channel.guild_id != guild {
+	if kanal.guild_id != guild {
 		return Err(Error::from("Dieser Channel ist nicht von diesem Server"));
 	}
 
 	// check if channel actually belong into self managed category
-	if &app.config.self_managment.category != channel.parent_id.ok_or("Dieser Kanal befindet sich nicht unterhalb einer Kategorie.")?.as_u64() {
+	if &app.config.self_managment.category != kanal.parent_id.ok_or("Dieser Kanal befindet sich nicht unterhalb einer Kategorie.")?.as_u64() {
 		return Err(Error::from("Dieser Channel befindet sich nicht in der richtigen Kategorie und kann nicht gelöscht werden."));
 	}
 
 	ctx.defer_ephemeral().await?;
-	let after = channel.id.edit(ctx.discord(), |c| {
+	let after = kanal.id.edit(ctx.discord(), |c| {
 		c
-				.name(name.as_ref().unwrap_or(&channel.name))
-				.topic(beschreibung.as_ref().unwrap_or(channel.topic.as_ref().unwrap()))
-				.nsfw(nsfw.unwrap_or(channel.nsfw))
+				.name(name.as_ref().unwrap_or(&kanal.name))
+				.topic(beschreibung.as_ref().unwrap_or(kanal.topic.as_ref().unwrap()))
+				.nsfw(nsfw.unwrap_or(kanal.nsfw))
 	});
 
 	// channel edits have absolute bonkers rate limits, so to prevent a lot of work to stack up, we use aggressives timeouts
@@ -100,9 +100,9 @@ async fn update_channel(
 
 	// inform user about success
 	ctx.send(|m| {
-		m.content(format!("Ich hab den Channel modifiziert: {}", channel.name()))
+		m.content(format!("Ich hab den Channel modifiziert: {}", kanal.name()))
 	}).await?;
-	log_both(&ctx, "Channel aktualisiert", Some(&channel), Some(&after)).await?;
+	log_both(&ctx, "Channel aktualisiert", Some(&kanal), Some(&after)).await?;
 
 	// sort channel list to maintain peace and harmony
 	sort(&ctx, &guild).await?;
@@ -115,32 +115,32 @@ async fn update_channel(
 async fn delete_channel(
 	ctx: Context<'_>,
 	#[description = "Der Channel, den du löschen möchtest."]
-	channel: GuildChannel,
+	kanal: GuildChannel,
 ) -> Result<(), Error> {
 	let app = ctx.data();
 
 	// TODO: duplicated code with update command, fix that
 	// check if channel belongs to same guild (prevents deletion from outside guilds)
 	let guild = ctx.guild_id().ok_or("Dieser Befehl kann nur in einem Server ausgeführt werden.")?;
-	if channel.guild_id != guild {
+	if kanal.guild_id != guild {
 		return Err(Error::from("Dieser Channel ist nicht von diesem Server."));
 	}
 
 	// check if channel actually belong into self managed category
-	if &app.config.self_managment.category != channel.parent_id.ok_or("Dieser Kanal befindet sich nicht unterhalb einer Kategorie.")?.as_u64() {
+	if &app.config.self_managment.category != kanal.parent_id.ok_or("Dieser Kanal befindet sich nicht unterhalb einer Kategorie.")?.as_u64() {
 		return Err(Error::from("Dieser Kanal befindet sich nicht in der richtigen Kategorie und kann nicht gelöscht werden."));
 	}
 
 	// perform deletion
 	ctx.defer_ephemeral().await?;
-	channel.delete(ctx.discord()).await?;
+	kanal.delete(ctx.discord()).await?;
 
 	// inform user about success
 	ctx.send(|m| {
-		m.content(format!("Ich hab den Kanal gelöscht: {}", channel.name()))
+		m.content(format!("Ich hab den Kanal gelöscht: {}", kanal.name()))
 	}).await?;
 
-	log_both(&ctx, "Kanal gelöscht", Some(&channel), None).await?;
+	log_both(&ctx, "Kanal gelöscht", Some(&kanal), None).await?;
 
 	Ok(())
 }
