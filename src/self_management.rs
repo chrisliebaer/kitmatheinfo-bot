@@ -91,8 +91,13 @@ async fn update_channel(
 	let after = kanal.id.edit(ctx.discord(), |c| {
 		c
 				.name(name.as_ref().unwrap_or(&kanal.name))
-				.topic(beschreibung.as_ref().unwrap_or(kanal.topic.as_ref().unwrap()))
-				.nsfw(nsfw.unwrap_or(kanal.nsfw))
+				.nsfw(nsfw.unwrap_or(kanal.nsfw));
+
+		let topic = beschreibung.as_ref().or(kanal.topic.as_ref());
+		if let Some(topic) = topic {
+			c.topic(topic);
+		}
+		c
 	});
 
 	// channel edits have absolute bonkers rate limits, so to prevent a lot of work to stack up, we use aggressives timeouts

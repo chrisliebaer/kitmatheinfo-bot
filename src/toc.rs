@@ -1,8 +1,6 @@
 #[allow(unused_imports)]
 use log::{trace, debug, info, warn, error};
 use std::collections::HashSet;
-use std::future::Future;
-use std::pin::Pin;
 use crate::{AppState, Context, Error};
 use poise::{
 	serenity_prelude::{
@@ -18,10 +16,7 @@ use poise::{
 	Framework,
 	serenity::model::interactions::message_component::MessageComponentInteraction,
 };
-use poise::serenity::model::id::{ChannelId, GuildId};
-use poise::serenity_prelude::{ArgumentConvert, CreateComponents, CreateEmbed, Message};
-use serenity::builder::CreateMessage;
-use serenity::model::id::MessageId;
+use poise::serenity_prelude::{CreateComponents, Message};
 
 pub fn register_commands(builder: FrameworkBuilder<AppState, Error>) -> FrameworkBuilder<AppState, Error> {
 	builder
