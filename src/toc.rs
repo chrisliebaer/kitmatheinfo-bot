@@ -1,6 +1,8 @@
 #[allow(unused_imports)]
 use log::{trace, debug, info, warn, error};
 use std::collections::HashSet;
+use std::future::Future;
+use std::pin::Pin;
 use crate::{AppState, Context, Error};
 use poise::{
 	serenity_prelude::{
@@ -10,18 +12,84 @@ use poise::{
 		ChannelType,
 		CreateSelectMenu,
 		CreateSelectMenuOption,
-		RoleId
+		RoleId,
 	},
 	FrameworkBuilder,
 	Framework,
 	serenity::model::interactions::message_component::MessageComponentInteraction,
 };
+use poise::serenity::model::id::{ChannelId, GuildId};
+use poise::serenity_prelude::{ArgumentConvert, CreateComponents, CreateEmbed, Message};
+use serenity::builder::CreateMessage;
+use serenity::model::id::MessageId;
 
 pub fn register_commands(builder: FrameworkBuilder<AppState, Error>) -> FrameworkBuilder<AppState, Error> {
-	builder.command(post_welcome_message(), |f| f)
+	builder
+			.command(post_welcome_message(), |f| f)
+			.command(update_welcome_message(), |f| f)
 }
 
-/// Erstellt die Begrüßungsnachricht im angegebenen Kanal.
+fn populate_components(app: &AppState, c: &mut CreateComponents) {
+	// adds buttons for toc records
+	c.create_action_row(|row| {
+		row.create_button(|button| {
+			button
+					.custom_id("assignments")
+					.label(&app.config.self_assignments.label)
+					.emoji(app.config.self_assignments.icon.clone())
+					.style(ButtonStyle::Success)
+		});
+		for entry in &app.config.toc {
+			row.create_button(|button| {
+				button
+						.custom_id(format!("toc:{}", entry.file.filename))
+						.label(&entry.label)
+						.emoji(entry.icon.to_owned())
+						.style(ButtonStyle::Primary)
+			});
+		}
+		row
+	});
+}
+
+/// Aktualisiert die verlinkte Nachricht auf die aktuelle Begrüßung.
+#[poise::command(
+prefix_command,
+rename = "rewelcome",
+required_permissions = "MANAGE_GUILD")
+]
+async fn update_welcome_message(
+	ctx: Context<'_>,
+	#[description = "Die Nachricht, welche aktualisiert werden soll."]
+	mut message: Message,
+) -> Result<(), Error> {
+	let app = ctx.data();
+
+	let guild = ctx.guild_id().ok_or("not in guild")?;
+	let channels = guild.channels(&ctx.discord()).await?;
+
+	if !channels.contains_key(&message.channel_id) {
+		return Err(Error::from("target message was not posted in this guild"));
+	}
+
+	message.edit(&ctx.discord(), |m| {
+		m
+				.content(app.config.welcome.to_string())
+				.suppress_embeds(true)
+				.components(|c| {
+					populate_components(app, c);
+					c
+				})
+	}).await?;
+
+	ctx.send(|m| {
+		m.content("Nachricht erfolgreich aktualisiert.").ephemeral(true)
+	}).await?;
+
+	Result::Ok(())
+}
+
+/// Erstellt die Begrüßungsnachricht im angegebenen Channel.
 #[poise::command(
 prefix_command,
 rename = "welcome",
@@ -47,27 +115,8 @@ async fn post_welcome_message(
 		m
 				.content(app.config.welcome.to_string())
 				.components(|c| {
-
-					// adds buttons for toc records
-					c.create_action_row(|row| {
-						row.create_button(|button| {
-							button
-									.custom_id("assignments")
-									.label(&app.config.self_assignments.label)
-									.emoji(app.config.self_assignments.icon.clone())
-									.style(ButtonStyle::Success)
-						});
-						for entry in &app.config.toc {
-							row.create_button(|button| {
-								button
-										.custom_id(format!("toc:{}", entry.file.filename))
-										.label(&entry.label)
-										.emoji(entry.icon.to_owned())
-										.style(ButtonStyle::Primary)
-							});
-						}
-						row
-					})
+					populate_components(app, c);
+					c
 				})
 	}).await?;
 
@@ -77,7 +126,6 @@ async fn post_welcome_message(
 
 	Result::Ok(())
 }
-
 
 pub async fn handle_assign_click<'a>(
 	ctx: &'a poise::serenity_prelude::Context,
