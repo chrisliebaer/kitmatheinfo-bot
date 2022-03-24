@@ -21,7 +21,7 @@ jobs:
           # Note: tools like rustfmt and clippy are not included,
           #       which speeds up the installation
           profile: minimal
-          toolchain: stable
+          toolchain: nightly
       - uses: actions-rs/cargo@v1
         with:
           command: check
@@ -34,7 +34,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: nightly
       - uses: actions-rs/cargo@v1
         with:
           command: test
