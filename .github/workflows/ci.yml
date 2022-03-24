@@ -1,0 +1,40 @@
+on: [push, pull_request]
+
+name: Continuous integration
+
+env:
+  # make the compiler print a backtrace if something
+  # panicked:
+  RUST_BACKTRACE: "1"
+
+jobs:
+  check:
+    name: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          # the minimal toolchain includes everything
+          # needed to compile rust code like cargo, rustc
+          # and the stdlib
+          # Note: tools like rustfmt and clippy are not included,
+          #       which speeds up the installation
+          profile: minimal
+          toolchain: nightly
+      - uses: actions-rs/cargo@v1
+        with:
+          command: check
+
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
