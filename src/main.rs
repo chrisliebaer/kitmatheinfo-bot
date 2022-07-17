@@ -70,11 +70,12 @@ async fn listener<'a>(
 						toc::handle_assign_click(ctx, app, component_interaction).await?;
 					}
 				}
-				_ => ()
+				_ => (),
 			};
+			trace!("Incoming interaction: {:?}", interaction)
 		}
 		Ready { data_about_bot } => info!("Bot is ready: {:?}", data_about_bot),
-		_ => ()
+		_ => (),
 	};
 	Ok(())
 }
@@ -138,7 +139,7 @@ async fn main() {
 		},
 		pre_command: |ctx| {
 			Box::pin(async move {
-				trace!("Executing command {}...", ctx.command().name);
+				trace!("Executing command {}... for {}", ctx.command().name, ctx.author());
 			})
 		},
 		post_command: |ctx| {

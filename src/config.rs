@@ -29,7 +29,6 @@ pub struct SelfManagement {
 	pub category: u64,
 	pub ownership: bool,
 	pub limit: u64,
-	pub make_channel_admin: bool,
 	pub abandon_after: u64,
 	pub claiming: bool,
 	pub logging: Option<u64>,
