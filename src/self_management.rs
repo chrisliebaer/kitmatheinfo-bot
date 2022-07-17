@@ -2,28 +2,20 @@ use std::time::Duration;
 #[allow(unused_imports)]
 use log::{trace, debug, info, warn, error};
 use crate::{AppState, Context, Error};
-use poise::{
-	serenity_prelude::{
-		GuildChannel,
-	},
-	FrameworkBuilder,
-};
+use poise::{serenity_prelude::{
+	GuildChannel,
+}, Command};
 use poise::serenity::prelude::Mentionable;
 use poise::serenity_prelude::{ChannelId, CreateEmbed, GuildId, User};
 
 const CHANNEL_EDIT_TIMEOUT: Duration = Duration::from_secs(10);
 
-pub fn register_commands(builder: FrameworkBuilder<AppState, Error>) -> FrameworkBuilder<AppState, Error> {
-	builder.command(channel_dummy(), |f| {
-		f.category("Selbstverwaltung")
-				.subcommand(create_channel(), |f| f)
-				.subcommand(update_channel(), |f| f)
-				.subcommand(delete_channel(), |f| f)
-	})
+pub fn register_commands(commands: &mut Vec<Command<AppState, Error>>) {
+	commands.push(channel_dummy());
 }
 
 /// Enthält Befehle für den selbstverwalteten Bereich des Servers.
-#[poise::command(slash_command, rename = "kanal")]
+#[poise::command(slash_command, rename = "kanal", subcommands("create_channel", "update_channel", "delete_channel"))]
 async fn channel_dummy(_ctx: Context<'_>) -> Result<(), Error> {
 	unreachable!() // Upper commands can never be called from discord, all good.
 }

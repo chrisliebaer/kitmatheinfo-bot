@@ -10,7 +10,7 @@ use std::{
 	fs::File,
 	io::Read,
 };
-use poise::{ErrorContext, Event, Framework, serenity_prelude::GatewayIntents};
+use poise::{FrameworkError, Event, Framework, serenity_prelude::GatewayIntents, FrameworkOptions};
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, AppState, Error>;
@@ -30,8 +30,11 @@ async fn help(
 	poise::builtins::help(
 		ctx,
 		command.as_deref(),
-		"Mit 'help <Befehl>' bekommst du weitere Hilfe zu Befehlen. Außerdem kannst du Befehle auch über einen Slash (/) verwenden.",
-		poise::builtins::HelpResponseMode::Ephemeral,
+		poise::builtins::HelpConfiguration {
+			extra_text_at_bottom: "Mit 'help <Befehl>' bekommst du weitere Hilfe zu Befehlen. Außerdem kannst du Befehle auch über einen Slash (/) verwenden.",
+			show_context_menu_commands: true,
+			..Default::default()
+		},
 	).await?;
 	Ok(())
 }
@@ -47,7 +50,6 @@ async fn register(ctx: Context<'_>, #[flag] global: bool) -> Result<(), Error> {
 async fn listener<'a>(
 	ctx: &'a poise::serenity_prelude::Context,
 	ev: &'a Event<'a>,
-	framework: &'a Framework<AppState, Error>,
 	app: &'a AppState,
 ) -> Result<(), Error> {
 	use poise::{
@@ -61,11 +63,11 @@ async fn listener<'a>(
 				MessageComponent(component_interaction) => {
 					let custom_id = component_interaction.data.custom_id.as_str();
 					if custom_id.starts_with("toc:") {
-						toc::handle_toc_click(ctx, framework, app, component_interaction).await?;
+						toc::handle_toc_click(ctx, app, component_interaction).await?;
 					} else if custom_id.starts_with("assignments") {
-						toc::print_assignments(ctx, framework, app, component_interaction).await?;
+						toc::print_assignments(ctx, app, component_interaction).await?;
 					} else if custom_id.starts_with("assign:") {
-						toc::handle_assign_click(ctx, framework, app, component_interaction).await?;
+						toc::handle_assign_click(ctx, app, component_interaction).await?;
 					}
 				}
 				_ => ()
@@ -77,13 +79,12 @@ async fn listener<'a>(
 	Ok(())
 }
 
-async fn on_error(error: Error, ctx: poise::ErrorContext<'_, AppState, Error>) {
-	use ErrorContext::*;
-	match ctx {
-		Setup =>
-			panic!("Failed to start bot: {:?}", error),
-		Command(ctx) => {
-			let send_result = ctx.ctx().send(|m| {
+async fn on_error(error: FrameworkError<'_, AppState, Error>) {
+	use FrameworkError::*;
+	match error {
+		Setup { error } => panic!("Failed to start bot: {:?}", error),
+		Command { error, ctx } => {
+			let send_result = ctx.send(|m| {
 				m.embed(|e| {
 					e.title("Fehler").description(&error)
 				}).ephemeral(true)
@@ -91,12 +92,13 @@ async fn on_error(error: Error, ctx: poise::ErrorContext<'_, AppState, Error>) {
 			if let Err(_) = send_result {
 				error!("Error while handling error: {:?}", error);
 			};
-			error!("Error in command `{}`: {:?}", ctx.command().name(), error);
+			error!("Error in command `{}`: {:?}", ctx.command().name, error);
 		}
-
-		Listener(event) => error!("Error handling event: {}: for event {:?}", error, event),
-		Autocomplete(ctx) =>
-			error!("Error in auto-completion for command `{}`: {:?}", ctx.ctx.command.slash_or_context_menu_name(), error),
+		error => {
+			if let Err(e) = poise::builtins::on_error(error).await {
+				println!("Error while handling error: {}", e)
+			}
+		}
 	}
 }
 
@@ -117,45 +119,48 @@ async fn main() {
 
 	info!("This is a log message and we need it!");
 
-	let builder = poise::Framework::build()
-			.token(&config.bot_token)
-			.client_settings(|b| {
-				b.intents(
-					GatewayIntents::GUILDS |
-							GatewayIntents::GUILD_MESSAGES |
-							GatewayIntents::DIRECT_MESSAGES |
-							GatewayIntents::GUILD_INTEGRATIONS
-				)
+	let mut commands: Vec<_> = vec![
+		help(),
+		register(),
+	];
+
+	toc::register_commands(&mut commands);
+	self_management::register_commands(&mut commands);
+
+	let options = FrameworkOptions {
+		commands,
+		listener: |ctx, ev, _framework, app| {
+			Box::pin(listener(ctx, ev, app))
+		},
+		prefix_options: poise::PrefixFrameworkOptions {
+			mention_as_prefix: true,
+			..Default::default()
+		},
+		pre_command: |ctx| {
+			Box::pin(async move {
+				trace!("Executing command {}...", ctx.command().name);
 			})
+		},
+		post_command: |ctx| {
+			Box::pin(async move {
+				trace!("Executed command {}!", ctx.command().name);
+			})
+		},
+		on_error: |error| Box::pin(on_error(error)),
+		..Default::default()
+	};
+
+	Framework::build()
+			.token(&config.bot_token)
+			.intents(GatewayIntents::GUILDS |
+					GatewayIntents::GUILD_MESSAGES |
+					GatewayIntents::DIRECT_MESSAGES |
+					GatewayIntents::GUILD_INTEGRATIONS)
 			.user_data_setup(move |_ctx, _ready, _framework| Box::pin(async move {
 				Ok(AppState {
 					config,
 				})
 			}))
-			.command(help(), |f| f)
-			.command(register(), |f| f)
-			.options(poise::FrameworkOptions {
-				listener: |ctx, ev, framework, app| { Box::pin(listener(ctx, ev, framework, app)) },
-				prefix_options: poise::PrefixFrameworkOptions {
-					mention_as_prefix: true,
-					..Default::default()
-				},
-				on_error: |error, ctx| Box::pin(on_error(error, ctx)),
-				pre_command: |ctx| {
-					Box::pin(async move {
-						trace!("Executing command {}...", ctx.command().unwrap().name());
-					})
-				},
-				post_command: |ctx| {
-					Box::pin(async move {
-						trace!("Executed command {}!", ctx.command().unwrap().name());
-					})
-				},
-				..Default::default()
-			});
-
-	// TODO: perform proper shutdown
-	let builder = toc::register_commands(builder);
-	let builder = self_management::register_commands(builder);
-	builder.run().await.unwrap();
+			.options(options)
+			.run().await.unwrap();
 }

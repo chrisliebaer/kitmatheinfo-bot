@@ -5,13 +5,13 @@ version = "0.1.0"
 edition = "2018"
 
 [dependencies]
-log = "0.4.14"
+log = "0.4"
 env_logger = { version = "0.9" , features = ["termcolor"]}
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
-serde_with = "1.11"
+serde_with = "1.14"
 toml = "0.5"
-tokio = { version = "1.1.1", features = ["macros", "rt-multi-thread", "time"] }
+tokio = { version = "1.20", features = ["macros", "rt-multi-thread", "time"] }
 serenity = { version = "0.10.2", default-features = false, features = ["builder", "cache", "client", "gateway", "model", "utils", "rustls_backend", "unstable_discord_api"] }
-poise = { git = "https://github.com/kangalioo/poise", rev = "d25cd064151351637c7d203a846c8784f035f3e2" }
+poise = "0.2"
 linked-hash-map = { version = "0.5", features = ["serde_impl"]}

@@ -2,26 +2,20 @@
 use log::{trace, debug, info, warn, error};
 use std::collections::HashSet;
 use crate::{AppState, Context, Error};
-use poise::{
-	serenity_prelude::{
-		GuildChannel,
-		ButtonStyle,
-		CreateActionRow,
-		ChannelType,
-		CreateSelectMenu,
-		CreateSelectMenuOption,
-		RoleId,
-	},
-	FrameworkBuilder,
-	Framework,
-	serenity::model::interactions::message_component::MessageComponentInteraction,
-};
+use poise::{serenity_prelude::{
+	GuildChannel,
+	ButtonStyle,
+	CreateActionRow,
+	ChannelType,
+	CreateSelectMenu,
+	CreateSelectMenuOption,
+	RoleId,
+}, serenity::model::interactions::message_component::MessageComponentInteraction, Command};
 use poise::serenity_prelude::{CreateComponents, Message};
 
-pub fn register_commands(builder: FrameworkBuilder<AppState, Error>) -> FrameworkBuilder<AppState, Error> {
-	builder
-			.command(post_welcome_message(), |f| f)
-			.command(update_welcome_message(), |f| f)
+pub fn register_commands(commands: &mut Vec<Command<AppState, Error>>) {
+	commands.push(post_welcome_message());
+	commands.push(update_welcome_message());
 }
 
 fn populate_components(app: &AppState, c: &mut CreateComponents) {
@@ -119,12 +113,11 @@ async fn post_welcome_message(
 		m.content("Nachricht erfolgreich erstellt").ephemeral(true)
 	}).await?;
 
-	Result::Ok(())
+	Ok(())
 }
 
 pub async fn handle_assign_click<'a>(
 	ctx: &'a poise::serenity_prelude::Context,
-	_framework: &'a Framework<AppState, Error>,
 	app: &'a AppState,
 	interaction: &'a MessageComponentInteraction,
 ) -> Result<(), Error> {
@@ -193,7 +186,6 @@ Entfernte Rollen: {}
 
 pub async fn handle_toc_click<'a>(
 	ctx: &'a poise::serenity_prelude::Context,
-	_framework: &'a Framework<AppState, Error>,
 	app: &'a AppState,
 	interaction: &'a MessageComponentInteraction,
 ) -> Result<(), Error> {
@@ -220,7 +212,6 @@ pub async fn handle_toc_click<'a>(
 
 pub async fn print_assignments<'a>(
 	ctx: &'a poise::serenity_prelude::Context,
-	_framework: &'a Framework<AppState, Error>,
 	app: &'a AppState,
 	interaction: &'a MessageComponentInteraction,
 ) -> Result<(), Error> {
