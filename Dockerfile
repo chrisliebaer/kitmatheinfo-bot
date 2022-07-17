@@ -1,6 +1,6 @@
 # Extracts dependencies so we provid from layer caching
 # https://www.lpalmieri.com/posts/fast-rust-docker-builds/
-FROM lukemathwalker/cargo-chef:latest-rust-1.53.0 AS chef
+FROM lukemathwalker/cargo-chef:latest-rust-1 AS chef
 WORKDIR app
 
 FROM chef AS planner
