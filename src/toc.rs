@@ -10,7 +10,8 @@ use poise::{serenity_prelude::{
 	CreateSelectMenu,
 	CreateSelectMenuOption,
 	RoleId,
-}, serenity::model::interactions::message_component::MessageComponentInteraction, Command};
+	MessageComponentInteraction
+}, Command};
 use poise::serenity_prelude::{CreateComponents, Message};
 
 pub fn register_commands(commands: &mut Vec<Command<AppState, Error>>) {
@@ -55,13 +56,13 @@ async fn update_welcome_message(
 	let app = ctx.data();
 
 	let guild = ctx.guild_id().ok_or("not in guild")?;
-	let channels = guild.channels(&ctx.discord()).await?;
+	let channels = guild.channels(&ctx).await?;
 
 	if !channels.contains_key(&message.channel_id) {
 		return Err(Error::from("target message was not posted in this guild"));
 	}
 
-	message.edit(&ctx.discord(), |m| {
+	message.edit(&ctx, |m| {
 		m
 				.content(app.config.welcome.to_string())
 				.suppress_embeds(true)
@@ -100,7 +101,7 @@ async fn post_welcome_message(
 		return Err(Error::from("not a text channel"));
 	}
 
-	channel.send_message(&ctx.discord(), |m| {
+	channel.send_message(&ctx, |m| {
 		m
 				.content(app.config.welcome.to_string())
 				.components(|c| {
@@ -156,7 +157,7 @@ pub async fn handle_assign_click<'a>(
 		resp.interaction_response_data(|d| {
 			d
 					.content(format!("Ich aktualisiere deine Rollen..."))
-					.flags(poise::serenity_prelude::InteractionApplicationCommandCallbackDataFlags::EPHEMERAL)
+					.flags(poise::serenity_prelude::InteractionResponseFlags::EPHEMERAL)
 		})
 	}).await?;
 
@@ -203,7 +204,7 @@ pub async fn handle_toc_click<'a>(
 		f.interaction_response_data(|d| {
 			d
 					.content(entry.file.content.as_str())
-					.flags(poise::serenity_prelude::InteractionApplicationCommandCallbackDataFlags::EPHEMERAL)
+					.flags(poise::serenity_prelude::InteractionResponseFlags::EPHEMERAL)
 		})
 	}).await?;
 
@@ -219,7 +220,7 @@ pub async fn print_assignments<'a>(
 		f.interaction_response_data(|d| {
 			d
 					.content(&app.config.self_assignments.prolog)
-					.flags(poise::serenity_prelude::InteractionApplicationCommandCallbackDataFlags::EPHEMERAL)
+					.flags(poise::serenity_prelude::InteractionResponseFlags::EPHEMERAL)
 					.components(|c| {
 
 						// add one row for each role assignment

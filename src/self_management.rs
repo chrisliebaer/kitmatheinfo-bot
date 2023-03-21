@@ -11,7 +11,7 @@ use poise::{serenity_prelude::{
 	User,
 	UserId,
 }, Command};
-use poise::serenity::prelude::Mentionable;
+use poise::serenity_prelude::Mentionable;
 use poise::serenity_prelude::{Mention};
 use crate::config::SelfManagement;
 
@@ -43,7 +43,7 @@ async fn create_channel(
 
 	// create channel in category (will fail if in different guild)
 	ctx.defer_ephemeral().await?;
-	let channel = guild_id.create_channel(ctx.discord(), |c| {
+	let channel = guild_id.create_channel(ctx, |c| {
 		c.name(name).topic(inject_ownership(&beschreibung, &ctx.author(), app)).category(sm.category)
 	}).await?;
 
@@ -81,7 +81,7 @@ async fn update_channel(
 	}
 	ctx.defer_ephemeral().await?;
 
-	let after = kanal.id.edit(ctx.discord(), |c| {
+	let after = kanal.id.edit(ctx, |c| {
 		c
 				.name(name.as_ref().unwrap_or(&kanal.name))
 				.nsfw(nsfw.unwrap_or(kanal.nsfw));
@@ -131,13 +131,11 @@ async fn claim_channel(
 	// check if channel contains owner information
 	let meta = ChannelMeta::from_channel(&kanal);
 	let topic = match meta {
-		Some(_) => ({
-			remove_meta(kanal.topic.as_ref().unwrap())
-		}),
+		Some(_) => remove_meta(kanal.topic.as_ref().unwrap()),
 		None => kanal.topic.as_deref().unwrap_or("").to_string(),
 	};
 
-	let after = kanal.id.edit(ctx.discord(), |c| {
+	let after = kanal.id.edit(ctx, |c| {
 		c.topic(inject_ownership(&topic, &ctx.author(), app))
 	});
 
@@ -169,7 +167,7 @@ async fn delete_channel(
 
 	// perform deletion
 	ctx.defer_ephemeral().await?;
-	kanal.delete(ctx.discord()).await?;
+	kanal.delete(ctx).await?;
 
 	// inform user about success
 	ctx.send(|m| {
@@ -274,7 +272,7 @@ async fn log_modification(
 	}
 
 	if field_set {
-		channel_id.send_message(ctx.discord(), |m| {
+		channel_id.send_message(ctx, |m| {
 			m.set_embed(e);
 			m
 		}).await?;
@@ -360,7 +358,7 @@ async fn sort(
 	let app = ctx.data();
 	let category_id = ChannelId(app.config.self_managment.category);
 
-	let channels = guild.channels(ctx.discord()).await?;
+	let channels = guild.channels(ctx).await?;
 	let mut category_channels = channels.iter()
 
 			// remove all channels without parent
@@ -375,7 +373,7 @@ async fn sort(
 
 	category_channels.sort_by(|x, y| x.name.cmp(&y.name));
 
-	guild.reorder_channels(ctx.discord(), category_channels.into_iter()
+	guild.reorder_channels(ctx, category_channels.into_iter()
 			.enumerate()
 			.map(|(idx, channel)| (channel.id, idx as u64)),
 	).await?;

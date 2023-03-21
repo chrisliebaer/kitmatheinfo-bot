@@ -1,6 +1,7 @@
 use std::fmt::{Display, Formatter};
 use std::fs::read_to_string;
 use serde::{Deserialize, Deserializer};
+use serde_with::{serde_as, DisplayFromStr};
 use linked_hash_map::LinkedHashMap;
 use poise::serenity_prelude::ReactionType;
 use serde::de::{Error, Visitor};
@@ -35,20 +36,22 @@ pub struct SelfManagement {
 	pub logging_detailed: Option<u64>,
 }
 
+#[serde_as]
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SelfAssignments {
 	pub label: String,
-	#[serde(with = "serde_with::rust::display_fromstr")]
+	#[serde_as(as = "DisplayFromStr")]
 	pub icon: ReactionType,
 	pub prolog: FileReference,
 }
 
+#[serde_as]
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TableOfContentEntry {
 	pub label: String,
-	#[serde(with = "serde_with::rust::display_fromstr")]
+	#[serde_as(as = "DisplayFromStr")]
 	pub icon: ReactionType,
 	pub file: FileReference,
 }
@@ -60,12 +63,13 @@ pub struct Assignment {
 	pub roles: Vec<Role>,
 }
 
+#[serde_as]
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Role {
 	pub label: String,
 	pub subscript: Option<String>,
-	#[serde(with = "serde_with::rust::display_fromstr")]
+	#[serde_as(as = "DisplayFromStr")]
 	pub icon: ReactionType,
 	pub role: u64,
 }

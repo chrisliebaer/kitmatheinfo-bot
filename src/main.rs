@@ -83,7 +83,7 @@ async fn listener<'a>(
 async fn on_error(error: FrameworkError<'_, AppState, Error>) {
 	use FrameworkError::*;
 	match error {
-		Setup { error } => panic!("Failed to start bot: {:?}", error),
+		Setup { error, .. } => panic!("Failed to start bot: {:?}", error),
 		Command { error, ctx } => {
 			let send_result = ctx.send(|m| {
 				m.embed(|e| {
@@ -130,7 +130,7 @@ async fn main() {
 
 	let options = FrameworkOptions {
 		commands,
-		listener: |ctx, ev, _framework, app| {
+		event_handler: |ctx, ev, _framework, app| {
 			Box::pin(listener(ctx, ev, app))
 		},
 		prefix_options: poise::PrefixFrameworkOptions {
@@ -151,13 +151,13 @@ async fn main() {
 		..Default::default()
 	};
 
-	Framework::build()
+	Framework::builder()
 			.token(&config.bot_token)
 			.intents(GatewayIntents::GUILDS |
 					GatewayIntents::GUILD_MESSAGES |
 					GatewayIntents::DIRECT_MESSAGES |
 					GatewayIntents::GUILD_INTEGRATIONS)
-			.user_data_setup(move |_ctx, _ready, _framework| Box::pin(async move {
+			.setup(move |_ctx, _ready, _framework| Box::pin(async move {
 				Ok(AppState {
 					config,
 				})
