@@ -30,6 +30,7 @@ pub struct SelfManagement {
 	pub category: u64,
 	pub ownership: bool,
 	pub limit: u64,
+	pub join_age_limit: i64,
 	pub abandon_after: u64,
 	pub claiming: bool,
 	pub logging: Option<u64>,

@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 #[allow(unused_imports)]
 use log::{trace, debug, info, warn, error};
 use crate::{AppState, Context, Error};
@@ -40,6 +40,27 @@ async fn create_channel(
 	let sm = &app.config.self_managment;
 
 	let guild_id = ctx.guild_id().ok_or("Dieser Befehl kann nur auf einem Server ausgeführt werden.")?;
+
+	// check how long user has been on the server
+	let joined_at = ctx.author_member().await
+			.map(|m| m.joined_at)
+			.flatten()
+			.ok_or("Ich konnte dein Mitgliedsalter leider nicht abfragen.")?;
+	let joined_at = joined_at.timestamp();
+	let now = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs() as i64;
+
+	if now - joined_at < sm.join_age_limit {
+		return Err(Error::from("Du bist noch nicht lange genug auf dem Server, um einen Kanal zu erstellen."));
+	}
+
+	// get current channels owned by user
+	let owned_channels = get_user_channel(&ctx).await?;
+	trace!("User owns {} channels: {:?}", owned_channels.len(), owned_channels.iter().map(|c| c.name.clone()).collect::<Vec<_>>());
+
+	// check if user is allowed to create more channels
+	if owned_channels.len() >= sm.limit as usize {
+		return Err(Error::from(format!("Du darfst nur maximal {} Kanäle besitzen.", sm.limit)));
+	}
 
 	// create channel in category (will fail if in different guild)
 	ctx.defer_ephemeral().await?;
@@ -279,6 +300,44 @@ async fn log_modification(
 	}
 
 	Ok(())
+}
+
+async fn get_user_channel(
+	ctx: &Context<'_>,
+) -> Result<Vec<GuildChannel>, Error> {
+	let guild = ctx.guild().ok_or("Dieser Befehl kann nur in einem Server ausgeführt werden.")?;
+	let user = ctx.author();
+	let sm = &ctx.data().config.self_managment;
+	let channels = guild.channels(ctx).await?;
+
+	// keep only channels that are in the category and have ownership meta
+	let channels = channels.into_iter()
+			.map(|(_, v)| v)
+			.filter(|c| match c.parent_id {
+				Some(id) => id == sm.category,
+				None => false
+			})
+			.collect::<Vec<_>>();
+	trace!("found {} channels in self_management category", channels.len());
+
+	// filter channels by ownership
+	let channels = channels.into_iter()
+			.map(|c| {
+				match ChannelMeta::from_channel(&c) {
+					Some(meta) => {
+						if meta.owner == user.id {
+							Some(c)
+						} else {
+							None
+						}
+					}
+					None => None
+				}
+			})
+			.flatten()
+			.collect::<Vec<_>>();
+
+	Ok(channels)
 }
 
 fn inject_ownership(topic: &str, user: &User, app: &AppState) -> String {
