@@ -68,6 +68,9 @@ async fn create_channel(
 		c.name(name).topic(inject_ownership(&beschreibung, &ctx.author(), app)).category(sm.category)
 	}).await?;
 
+	// recent undocumented change discards any newlines in the topic during creation, so we have to set it again via edit call (costs another api call, great)
+	channel.id.edit(ctx, |c| c.topic(inject_ownership(&beschreibung, &ctx.author(), app))).await?;
+
 	// inform user about success
 	ctx.send(|m| {
 		m.content(format!("Ich hab deinen Kanal erstellt: {}", channel.mention()))
