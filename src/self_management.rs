@@ -193,10 +193,12 @@ async fn delete_channel(
 	ctx.defer_ephemeral().await?;
 	kanal.delete(ctx).await?;
 
-	// inform user about success
-	ctx.send(|m| {
-		m.content(format!("Ich hab den Kanal gelöscht: {}", kanal.name()))
-	}).await?;
+	// inform user about success (only possible if command was not issued from the very same channel)
+	if ctx.channel_id() != kanal.id {
+		ctx.send(|m| {
+			m.content(format!("Ich hab den Kanal gelöscht: {}", kanal.name()))
+		}).await?;
+	}
 
 	log_both(&ctx, "Kanal gelöscht", Some(&kanal), None).await?;
 
