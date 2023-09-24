@@ -1,6 +1,7 @@
 mod config;
 mod toc;
 mod self_management;
+mod moderation;
 
 use env_logger::Target;
 #[allow(unused_imports)]
@@ -127,6 +128,7 @@ async fn main() {
 
 	toc::register_commands(&mut commands);
 	self_management::register_commands(&mut commands);
+	moderation::register_commands(&mut commands);
 
 	let options = FrameworkOptions {
 		commands,

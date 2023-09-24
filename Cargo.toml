@@ -9,8 +9,8 @@ log = "0.4"
 env_logger = { version = "0.10"}
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
-serde_with = "2.2"
-toml = "0.5"
+serde_with = "3.3.0"
+toml = "0.7.6"
 tokio = { version = "1.20", features = ["macros", "rt-multi-thread", "time"] }
 serenity = { version = "0.11", default-features = false, features = ["builder", "cache", "client", "gateway", "model", "utils", "rustls_backend", "unstable_discord_api"] }
 poise = "0.5"

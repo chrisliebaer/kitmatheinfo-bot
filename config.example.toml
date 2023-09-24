@@ -20,16 +20,16 @@ toc = [
 category = 123456789
 
 # Ownership enables users to own the channel they created. This means that they exclusively are permitted to modify or delete the channel.
-ownership = true # not yet implemented
+ownership = true
 
 # Will give current owner permissions to manage channel within Discord. Includes: description, pins and message deletion
 make_channel_admin = true # not yet implemented
 
 # Time after last message (in seconds) in channel until channel will become abandoned and ownership will no longer be enforced. (Bot's do not count)
-abandon_after = 864000 # 10 days # not yet implemented
+abandon_after = 864000
 
 # Number of channels a user can own
-limit = 5 # not yet implemented
+limit = 5
 
 # Enables claiming of abandoned channels by everyone. Can also be used to refresh ownership by current owner.
 claiming = true # not yet implemented
@@ -66,3 +66,6 @@ roles = [
     { icon = "🍬", label = "Role 5", subscript = "u still counting?", role = 123456789 },
     { icon = "<a:fancy_emote:123456789>", label = "Role 6", role = 123456789 }, # can even use server emotes!
 ]
+
+[moderation]
+report_channel = 123456789

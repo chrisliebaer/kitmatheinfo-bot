@@ -14,6 +14,7 @@ pub struct Config {
 	pub welcome: FileReference,
 	pub self_managment: SelfManagement,
 	pub toc: Vec<TableOfContentEntry>,
+	pub moderation: Moderation,
 	pub self_assignments: SelfAssignments,
 	pub assignments: LinkedHashMap<String, Assignment>,
 }
@@ -55,6 +56,12 @@ pub struct TableOfContentEntry {
 	#[serde_as(as = "DisplayFromStr")]
 	pub icon: ReactionType,
 	pub file: FileReference,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Moderation {
+	pub report_channel: Option<u64>,
 }
 
 #[derive(Debug, Deserialize)]
