@@ -3,6 +3,8 @@ use serenity::model::prelude::ChannelId;
 use serenity::prelude::Mentionable;
 use crate::{AppState, Context, Error};
 
+const REPORT_MESSAGE_LENGTH: usize = 500;
+
 pub fn register_commands(commands: &mut Vec<Command<AppState, Error>>) {
 	commands.push(report_message());
 }
@@ -45,8 +47,8 @@ async fn report_message(
 		Some(_) => {
 			report_channel.send_message(ctx, |m| {
 				m.embed(|e| {
-					let message_abbreviation = if msg.content.len() > 100 {
-						&msg.content[..500]
+					let message_abbreviation = if msg.content.len() > REPORT_MESSAGE_LENGTH {
+						&msg.content[..REPORT_MESSAGE_LENGTH]
 					} else {
 						&msg.content
 					};
