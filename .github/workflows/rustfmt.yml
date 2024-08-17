@@ -1,0 +1,13 @@
+name: rustfmt
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  rustfmt:
+    uses: chrisliebaer/.github/.github/workflows/rustfmt.yml@master

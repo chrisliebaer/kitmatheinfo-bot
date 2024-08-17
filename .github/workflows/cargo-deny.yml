@@ -1,0 +1,13 @@
+name: cargo-deny
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  cargo-deny:
+    uses: chrisliebaer/.github/.github/workflows/cargo-deny.yml@master
