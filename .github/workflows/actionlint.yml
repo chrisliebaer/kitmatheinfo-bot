@@ -1,0 +1,13 @@
+name: actionlint
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  actionlint:
+    uses: chrisliebaer/workflows/.github/workflows/actionlint.yml@master
