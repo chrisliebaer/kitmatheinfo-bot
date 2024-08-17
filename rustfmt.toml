@@ -1,0 +1,56 @@
+unstable_features = true
+version = "Two"
+
+# general stuff
+hide_parse_errors = true # since we sometimes save files with syntax errors
+max_width = 130
+color = "Always"
+edition = "2021"
+newline_style = "Unix"
+normalize_comments = true
+normalize_doc_attributes = true
+
+blank_lines_upper_bound = 1
+
+# indentation and spaces
+hard_tabs = true
+tab_spaces = 2
+space_after_colon = true
+
+# commas
+match_block_trailing_comma = true
+
+# imports and modules
+reorder_imports = true
+reorder_modules = true
+group_imports = "StdExternalCrate"
+imports_layout = "Vertical"
+imports_granularity = "Crate"
+reorder_impl_items = true
+
+hex_literal_case = "Lower"
+
+# error when unable to format
+error_on_line_overflow = true
+error_on_unformatted = true
+
+# formatting
+format_strings = true
+format_code_in_doc_comments = true
+format_generated_files = false
+format_macro_matchers = true
+
+# lines and line breaks
+struct_lit_single_line = false
+brace_style = "PreferSameLine"
+control_brace_style = "AlwaysSameLine"
+where_single_line = true
+wrap_comments = true
+comment_width = 120
+
+# style
+merge_derives = true
+use_field_init_shorthand = true
+condense_wildcard_suffixes = true
+overflow_delimited_expr = true
+combine_control_expr = false

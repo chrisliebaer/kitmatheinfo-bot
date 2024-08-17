@@ -1,0 +1,13 @@
+name: clippy
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  clippy:
+    uses: chrisliebaer/.github/.github/workflows/clippy.yml@master
