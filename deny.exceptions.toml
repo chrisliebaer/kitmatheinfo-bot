@@ -1,0 +1,4 @@
+exceptions = [
+		# ring is using multiple intermangled licenses
+		{ allow = ["ISC", "OpenSSL"], name = "ring" },
+]
