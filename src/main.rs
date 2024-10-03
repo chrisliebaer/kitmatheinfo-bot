@@ -20,11 +20,11 @@ use log::{
 	warn,
 };
 use poise::{
+	serenity_prelude::GatewayIntents,
 	CreateReply,
 	Framework,
 	FrameworkError,
 	FrameworkOptions,
-	serenity_prelude::GatewayIntents,
 };
 use serenity::all::{
 	ClientBuilder,
