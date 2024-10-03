@@ -1,8 +1,8 @@
 unstable_features = true
-version = "Two"
+style_edition = "2021"
 
 # general stuff
-hide_parse_errors = true # since we sometimes save files with syntax errors
+show_parse_errors = false # since we sometimes save files with syntax errors
 max_width = 130
 color = "Always"
 edition = "2021"
