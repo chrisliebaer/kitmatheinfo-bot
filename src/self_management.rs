@@ -12,8 +12,6 @@ use log::{
 	warn,
 };
 use poise::{
-	Command,
-	CreateReply,
 	serenity_prelude::{
 		ChannelId,
 		CreateEmbed,
@@ -24,6 +22,8 @@ use poise::{
 		User,
 		UserId,
 	},
+	Command,
+	CreateReply,
 };
 use serde::{
 	Deserialize,
@@ -38,10 +38,10 @@ use serenity::{
 };
 
 use crate::{
+	config::SelfManagement,
 	AppState,
 	Context,
 	Error,
-	config::SelfManagement,
 };
 
 const CHANNEL_EDIT_TIMEOUT: Duration = Duration::from_secs(10);
