@@ -20,10 +20,15 @@ use log::{
 };
 use poise::{
 	serenity_prelude::GatewayIntents,
-	Event,
+	CreateReply,
 	Framework,
 	FrameworkError,
 	FrameworkOptions,
+};
+use serenity::all::{
+	ClientBuilder,
+	CreateEmbed,
+	FullEvent,
 };
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
@@ -60,34 +65,25 @@ async fn register(ctx: Context<'_>, #[flag] global: bool) -> Result<(), Error> {
 
 /// Generic listener on top of poise to handle all incoming discord events. Especially button interactions, which pose
 /// doesn't support yet.
-async fn listener<'a>(ctx: &'a poise::serenity_prelude::Context, ev: &'a Event<'a>, app: &'a AppState) -> Result<(), Error> {
-	use poise::{
-		serenity_prelude::Interaction::MessageComponent,
-		Event::{
-			InteractionCreate,
-			Ready,
-		},
-	};
+async fn listener<'a>(ctx: &'a poise::serenity_prelude::Context, ev: &'a FullEvent, app: &'a AppState) -> Result<(), Error> {
+	use serenity::model::application::Interaction;
 	match ev {
-		InteractionCreate {
+		FullEvent::InteractionCreate {
 			interaction,
 		} => {
-			match interaction {
-				MessageComponent(component_interaction) => {
-					let custom_id = component_interaction.data.custom_id.as_str();
-					if custom_id.starts_with("toc:") {
-						toc::handle_toc_click(ctx, app, component_interaction).await?;
-					} else if custom_id.starts_with("assignments") {
-						toc::print_assignments(ctx, app, component_interaction).await?;
-					} else if custom_id.starts_with("assign:") {
-						toc::handle_assign_click(ctx, app, component_interaction).await?;
-					}
-				},
-				_ => (),
+			if let Interaction::Component(component_interaction) = &interaction {
+				let custom_id = component_interaction.data.custom_id.as_str();
+				if custom_id.starts_with("toc:") {
+					toc::handle_toc_click(ctx, app, component_interaction).await?;
+				} else if custom_id.starts_with("assignments") {
+					toc::print_assignments(ctx, app, component_interaction).await?;
+				} else if custom_id.starts_with("assign:") {
+					toc::handle_assign_click(ctx, app, component_interaction).await?;
+				}
 			};
 			trace!("Incoming interaction: {:?}", interaction)
 		},
-		Ready {
+		FullEvent::Ready {
 			data_about_bot,
 		} => info!("Bot is ready: {:?}", data_about_bot),
 		_ => (),
@@ -104,11 +100,16 @@ async fn on_error(error: FrameworkError<'_, AppState, Error>) {
 		Command {
 			error,
 			ctx,
+			..
 		} => {
 			let send_result = ctx
-				.send(|m| m.embed(|e| e.title("Fehler").description(&error)).ephemeral(true))
+				.send(
+					CreateReply::default()
+						.embed(CreateEmbed::new().title("Fehler").description(error.to_string()))
+						.ephemeral(true),
+				)
 				.await;
-			if let Err(_) = send_result {
+			if send_result.is_err() {
 				error!("Error while handling error: {:?}", error);
 			};
 			error!("Error in command `{}`: {:?}", ctx.command().name, error);
@@ -165,14 +166,9 @@ async fn main() {
 		..Default::default()
 	};
 
-	Framework::builder()
-		.token(&config.bot_token)
-		.intents(
-			GatewayIntents::GUILDS
-				| GatewayIntents::GUILD_MESSAGES
-				| GatewayIntents::DIRECT_MESSAGES
-				| GatewayIntents::GUILD_INTEGRATIONS,
-		)
+	let bot_token = config.bot_token.clone();
+
+	let framework = Framework::builder()
 		.setup(move |_ctx, _ready, _framework| {
 			Box::pin(async move {
 				Ok(AppState {
@@ -181,7 +177,17 @@ async fn main() {
 			})
 		})
 		.options(options)
-		.run()
-		.await
-		.unwrap();
+		.build();
+
+	let client = ClientBuilder::new(
+		bot_token,
+		GatewayIntents::GUILDS
+			| GatewayIntents::GUILD_MESSAGES
+			| GatewayIntents::DIRECT_MESSAGES
+			| GatewayIntents::GUILD_INTEGRATIONS,
+	)
+	.framework(framework)
+	.await;
+
+	client.unwrap().start().await.unwrap();
 }

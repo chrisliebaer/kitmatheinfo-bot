@@ -1,5 +1,10 @@
-use poise::Command;
+use poise::{
+	Command,
+	CreateReply,
+};
 use serenity::{
+	all::CreateMessage,
+	builder::CreateEmbed,
 	model::prelude::ChannelId,
 	prelude::Mentionable,
 };
@@ -38,9 +43,11 @@ async fn report_message(
 		Context::Prefix(_) => unreachable!("This command is only available as a context menu command"),
 	};
 	let report_channel = match app_context.data().config.moderation.report_channel {
-		Some(id) => ChannelId(id),
+		Some(id) => ChannelId::new(id),
 		None => {
-			ctx.send(|m| m.content("Die Meldefunktion ist nicht aktiviert.")).await?;
+			ctx
+				.send(CreateReply::default().content("Die Meldefunktion ist nicht aktiviert."))
+				.await?;
 			return Ok(());
 		},
 	};
@@ -49,32 +56,33 @@ async fn report_message(
 
 	match report {
 		Some(_) => {
-			report_channel
-				.send_message(ctx, |m| {
-					m.embed(|e| {
-						let message_abbreviation = if msg.content.len() > REPORT_MESSAGE_LENGTH {
-							&msg.content[..REPORT_MESSAGE_LENGTH]
-						} else {
-							&msg.content
-						};
+			let message_abbreviation = if msg.content.len() > REPORT_MESSAGE_LENGTH {
+				&msg.content[..REPORT_MESSAGE_LENGTH]
+			} else {
+				&msg.content
+			};
 
-						e.title(format!("Neue Meldung von {}", ctx.author().name))
-							.description(&message_abbreviation)
-							.field("Grund", report.unwrap().reason, true)
-							.field("Link", format!("[Link]({})", msg.link()), true)
-							.field("Autor", msg.author.mention(), true)
-							.field("Kanal", msg.channel_id.mention(), true)
-							.field("Melder", ctx.author().mention(), true)
-							.timestamp(msg.timestamp.to_rfc3339())
-					})
-				})
+			let embed = CreateEmbed::new()
+				.title(format!("Neue Meldung von {}", ctx.author().name))
+				.description(message_abbreviation)
+				.field("Grund", report.unwrap().reason, true)
+				.field("Link", format!("[Link]({})", msg.link()), true)
+				.field("Autor", msg.author.mention().to_string(), true)
+				.field("Kanal", msg.channel_id.mention().to_string(), true)
+				.field("Melder", ctx.author().mention().to_string(), true)
+				.timestamp(msg.timestamp);
+
+			report_channel
+				.send_message(ctx, CreateMessage::default().embed(embed))
 				.await?;
 
-			ctx.send(|m| m.content("Die Nachricht wurde gemeldet.")).await?;
+			ctx
+				.send(CreateReply::default().content("Die Nachricht wurde gemeldet."))
+				.await?;
 		},
 		None => {
 			ctx
-				.send(|m| m.content("Du hast die Meldung abgebrochen oder es trat ein Fehler auf."))
+				.send(CreateReply::default().content("Du hast die Meldung abgebrochen oder es trat ein Fehler auf."))
 				.await?;
 			return Ok(());
 		},

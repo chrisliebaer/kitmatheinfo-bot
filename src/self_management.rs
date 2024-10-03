@@ -23,10 +23,18 @@ use poise::{
 		UserId,
 	},
 	Command,
+	CreateReply,
 };
 use serde::{
 	Deserialize,
 	Serialize,
+};
+use serenity::{
+	all::{
+		CreateChannel,
+		CreateMessage,
+	},
+	builder::EditChannel,
 };
 
 use crate::{
@@ -70,8 +78,7 @@ async fn create_channel(
 	let joined_at = ctx
 		.author_member()
 		.await
-		.map(|m| m.joined_at)
-		.flatten()
+		.and_then(|m| m.joined_at)
 		.ok_or("Ich konnte dein Mitgliedsalter leider nicht abfragen.")?;
 	let joined_at = joined_at.timestamp();
 	let now = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs() as i64;
@@ -98,23 +105,27 @@ async fn create_channel(
 	// create channel in category (will fail if in different guild)
 	ctx.defer_ephemeral().await?;
 	let channel = guild_id
-		.create_channel(ctx, |c| {
-			c.name(name)
-				.topic(inject_ownership(&beschreibung, &ctx.author(), app))
-				.category(sm.category)
-		})
+		.create_channel(
+			ctx,
+			CreateChannel::new(name)
+				.topic(inject_ownership(&beschreibung, ctx.author(), app))
+				.category(sm.category),
+		)
 		.await?;
 
 	// recent undocumented change discards any newlines in the topic during creation, so we have to set it again via edit
 	// call (costs another api call, great)
 	channel
 		.id
-		.edit(ctx, |c| c.topic(inject_ownership(&beschreibung, &ctx.author(), app)))
+		.edit(
+			ctx,
+			EditChannel::default().topic(inject_ownership(&beschreibung, ctx.author(), app)),
+		)
 		.await?;
 
 	// inform user about success
 	ctx
-		.send(|m| m.content(format!("Ich hab deinen Kanal erstellt: {}", channel.mention())))
+		.send(CreateReply::default().content(format!("Ich hab deinen Kanal erstellt: {}", channel.mention())))
 		.await?;
 
 	log_both(&ctx, "Kanal erstellt", None, Some(&channel)).await?;
@@ -142,22 +153,24 @@ async fn update_channel(
 	}
 	ctx.defer_ephemeral().await?;
 
-	let after = kanal.id.edit(ctx, |c| {
-		c.name(name.as_ref().unwrap_or(&kanal.name)).nsfw(nsfw.unwrap_or(kanal.nsfw));
-
+	let after = {
+		let mut edit_channel = EditChannel::default()
+			.name(name.as_ref().unwrap_or(&kanal.name))
+			.nsfw(nsfw.unwrap_or(kanal.nsfw));
 		let topic = beschreibung.as_ref();
 		if let Some(topic) = topic {
-			c.topic(inject_ownership(topic, &ctx.author(), app));
+			edit_channel = edit_channel.topic(inject_ownership(topic, ctx.author(), app));
 		}
-		c
-	});
 
-	// channel edits have absolute bonkers rate limits, so to prevent a lot of work to stack up, we use aggressives timeouts
+		kanal.id.edit(ctx, edit_channel)
+	};
+
+	// channel edits have absolute bonkers rate limits, so to prevent a lot of work to stack up, we use aggressive timeouts
 	let after = tokio::time::timeout(CHANNEL_EDIT_TIMEOUT, after).await??;
 
 	// inform user about success
 	ctx
-		.send(|m| m.content(format!("Ich hab den Channel modifiziert: {}", kanal.name())))
+		.send(CreateReply::default().content(format!("Ich hab den Channel modifiziert: {}", kanal.name())))
 		.await?;
 	log_both(&ctx, "Channel aktualisiert", Some(&kanal), Some(&after)).await?;
 
@@ -190,14 +203,16 @@ async fn claim_channel(ctx: Context<'_>, #[description = "Der Name des Channels.
 		None => kanal.topic.as_deref().unwrap_or("").to_string(),
 	};
 
-	let after = kanal.id.edit(ctx, |c| c.topic(inject_ownership(&topic, &ctx.author(), app)));
+	let after = kanal
+		.id
+		.edit(ctx, EditChannel::default().topic(inject_ownership(&topic, ctx.author(), app)));
 
 	// channel edits have absolute bonkers rate limits, so to prevent a lot of work to stack up, we use aggressives timeouts
 	tokio::time::timeout(CHANNEL_EDIT_TIMEOUT, after).await??;
 
 	// inform user about success
 	ctx
-		.send(|m| m.content(format!("Du bist nun der neue Besitzer von: {}", kanal.name())))
+		.send(CreateReply::default().content(format!("Du bist nun der neue Besitzer von: {}", kanal.name())))
 		.await?;
 
 	Ok(())
@@ -224,7 +239,7 @@ async fn delete_channel(
 	// inform user about success (only possible if command was not issued from the very same channel)
 	if ctx.channel_id() != kanal.id {
 		ctx
-			.send(|m| m.content(format!("Ich hab den Kanal gelöscht: {}", kanal.name())))
+			.send(CreateReply::default().content(format!("Ich hab den Kanal gelöscht: {}", kanal.name())))
 			.await?;
 	}
 
@@ -243,12 +258,12 @@ async fn log_both(
 	let user = ctx.author();
 
 	// logging for everyone without user
-	log_modification(ctx, &cfg.logging.map(|id| ChannelId(id)), summary, before, after, None).await?;
+	log_modification(ctx, &cfg.logging.map(|id| ChannelId::new(id)), summary, before, after, None).await?;
 
 	// internal logging with executing user
 	log_modification(
 		ctx,
-		&cfg.logging_detailed.map(|id| ChannelId(id)),
+		&cfg.logging_detailed.map(|id| ChannelId::new(id)),
 		summary,
 		before,
 		after,
@@ -272,15 +287,14 @@ async fn log_modification(
 	let channel_id: ChannelId = match channel_id {
 		None => return Ok(()), // do nothing and return
 		Some(channel_id) => channel_id.to_owned(),
-	}
-	.into();
+	};
 
 	let mut e = CreateEmbed::default();
 
 	// track if we actually ever set any field
 	let mut field_set = false;
 
-	e.title(summary);
+	e = e.title(summary);
 	match before {
 		None => match after {
 			// nothing, caller is stupid
@@ -288,7 +302,8 @@ async fn log_modification(
 
 			// new channel
 			Some(after) => {
-				e.field("Name", &after.name, true)
+				e = e
+					.field("Name", &after.name, true)
 					.field("Beschreibung", after.topic.as_ref().unwrap(), true);
 				field_set = true;
 			},
@@ -296,7 +311,8 @@ async fn log_modification(
 		Some(before) => match after {
 			// channel delete
 			None => {
-				e.field("Name", &before.name, true)
+				e = e
+					.field("Name", &before.name, true)
 					.field("Beschreibung", before.topic.as_ref().unwrap(), true);
 				field_set = true;
 			},
@@ -305,13 +321,13 @@ async fn log_modification(
 			Some(after) => {
 				// check if name changed
 				if before.name != after.name {
-					e.field("Name", format!("- `{}`\n\n+ `{}`", before.name, after.name), true);
+					e = e.field("Name", format!("- `{}`\n\n+ `{}`", before.name, after.name), true);
 					field_set = true;
 				}
 
 				// check if description changed
 				if before.topic != after.topic {
-					e.field(
+					e = e.field(
 						"Beschreibung",
 						format!(
 							"- `{}`\n\n+ `{}`",
@@ -325,7 +341,7 @@ async fn log_modification(
 
 				// check if nsfw flag changed
 				if before.topic != after.topic {
-					e.field("NSFW", if after.nsfw { "ja" } else { "nein" }, true);
+					e = e.field("NSFW", if after.nsfw { "ja" } else { "nein" }, true);
 					field_set = true;
 				}
 			},
@@ -333,16 +349,11 @@ async fn log_modification(
 	};
 
 	if let Some(user) = user {
-		e.field("Nutzer", user, false);
+		e = e.field("Nutzer", format!("{} ({})", user.name, user.id), false);
 	}
 
 	if field_set {
-		channel_id
-			.send_message(ctx, |m| {
-				m.set_embed(e);
-				m
-			})
-			.await?;
+		channel_id.send_message(ctx, CreateMessage::default().embed(e)).await?;
 	}
 
 	Ok(())
@@ -351,15 +362,15 @@ async fn log_modification(
 async fn get_user_channel(ctx: &Context<'_>) -> Result<Vec<GuildChannel>, Error> {
 	let guild = ctx
 		.guild()
-		.ok_or("Dieser Befehl kann nur in einem Server ausgeführt werden.")?;
+		.ok_or("Dieser Befehl kann nur in einem Server ausgeführt werden.")?
+		.clone();
 	let user = ctx.author();
 	let sm = &ctx.data().config.self_managment;
 	let channels = guild.channels(ctx).await?;
 
 	// keep only channels that are in the category and have ownership meta
 	let channels = channels
-		.into_iter()
-		.map(|(_, v)| v)
+		.into_values()
 		.filter(|c| match c.parent_id {
 			Some(id) => id == sm.category,
 			None => false,
@@ -370,7 +381,7 @@ async fn get_user_channel(ctx: &Context<'_>) -> Result<Vec<GuildChannel>, Error>
 	// filter channels by ownership
 	let channels = channels
 		.into_iter()
-		.map(|c| match ChannelMeta::from_channel(&c) {
+		.filter_map(|c| match ChannelMeta::from_channel(&c) {
 			Some(meta) => {
 				if meta.owner == user.id {
 					Some(c)
@@ -380,7 +391,6 @@ async fn get_user_channel(ctx: &Context<'_>) -> Result<Vec<GuildChannel>, Error>
 			},
 			None => None,
 		})
-		.flatten()
 		.collect::<Vec<_>>();
 
 	Ok(channels)
@@ -410,13 +420,11 @@ fn precheck_and_unwrap(ctx: Context<'_>, channel: &GuildChannel) -> Result<Guild
 		return Err(Error::from("Dieser Channel ist nicht von diesem Server"));
 	}
 
-	// check if channel actually belong into self managed category
-	if &app.config.self_managment.category
-		!= channel
-			.parent_id
-			.ok_or("Dieser Kanal befindet sich nicht unterhalb einer Kategorie.")?
-			.as_u64()
-	{
+	// check if channel actually belong into self-managed category
+	let channel_category_id = channel
+		.parent_id
+		.ok_or("Dieser Kanal befindet sich nicht unterhalb einer Kategorie.")?;
+	if app.config.self_managment.category != u64::from(channel_category_id) {
 		return Err(Error::from(
 			"Dieser Channel befindet sich nicht in der richtigen Kategorie und kann nicht gelöscht werden.",
 		));
@@ -444,7 +452,7 @@ fn can_edit_channel(user: &UserId, channel: &GuildChannel, config: &SelfManageme
 		.unwrap_or(false);
 
 	// allow if user is owner or there is no meta
-	let meta = ChannelMeta::from_channel(&channel);
+	let meta = ChannelMeta::from_channel(channel);
 	if let Some(meta) = meta {
 		if meta.owner == *user {
 			return true;
@@ -470,7 +478,7 @@ fn remove_meta(str: &str) -> String {
 
 async fn sort(ctx: &Context<'_>, guild: &GuildId) -> Result<(), Error> {
 	let app = ctx.data();
-	let category_id = ChannelId(app.config.self_managment.category);
+	let category_id = ChannelId::new(app.config.self_managment.category);
 
 	let channels = guild.channels(ctx).await?;
 	let mut category_channels = channels
@@ -478,7 +486,7 @@ async fn sort(ctx: &Context<'_>, guild: &GuildId) -> Result<(), Error> {
 		// remove all channels without parent
 		.filter_map(|(_, channel)| channel.parent_id.map(|parent_id| (parent_id, channel)))
 		// remove channels from different categories
-		.filter(|(parent_id, _)| category_id.0 == parent_id.0)
+		.filter(|(parent_id, _)| category_id == *parent_id)
 		// drop parent information
 		.map(|(_, channel)| channel)
 		.collect::<Vec<_>>();
@@ -533,8 +541,7 @@ mod channel_meta_serde {
 	pub fn deserialize<'de, D>(d: D) -> Result<UserId, D::Error>
 	where D: Deserializer<'de> {
 		let s: &str = Deserialize::deserialize(d)?;
-		let mention =
-			Mention::from_str(s).map_err(|err| serde::de::Error::custom(format!("Failed to parse mention: {}", err.to_string())))?;
+		let mention = Mention::from_str(s).map_err(|err| serde::de::Error::custom(format!("Failed to parse mention: {}", err)))?;
 
 		let user_id = match mention {
 			Mention::User(user_id) => Ok(user_id),
