@@ -1,9 +1,6 @@
 # Discord bot token
 bot_token = "YOUR BOT TOKEN HIER"
 
-# MongoDB host
-mongodb = "mongodb://mongodb:27017" # not yet implemented
-
 # File with top level message that will be posted as welcome text.
 welcome = "welcome.md"
 
@@ -22,14 +19,14 @@ category = 123456789
 # Ownership enables users to own the channel they created. This means that they exclusively are permitted to modify or delete the channel.
 ownership = true
 
-# Will give current owner permissions to manage channel within Discord. Includes: description, pins and message deletion
-make_channel_admin = true # not yet implemented
-
 # Time after last message (in seconds) in channel until channel will become abandoned and ownership will no longer be enforced. (Bot's do not count)
 abandon_after = 864000
 
 # Number of channels a user can own
 limit = 5
+
+# Time after joining the server (in seconds) until a user can create a channel
+join_age_limit = 1814400
 
 # Enables claiming of abandoned channels by everyone. Can also be used to refresh ownership by current owner.
 claiming = true # not yet implemented
@@ -69,3 +66,8 @@ roles = [
 
 [moderation]
 report_channel = 123456789
+
+[o_phase]
+password = "foobar"
+role_name = "Random garbage"
+channel_name = "updates"

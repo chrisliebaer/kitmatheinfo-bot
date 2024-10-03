@@ -1,5 +1,6 @@
 mod config;
 mod moderation;
+mod ophase;
 mod self_management;
 mod toc;
 
@@ -19,11 +20,11 @@ use log::{
 	warn,
 };
 use poise::{
-	serenity_prelude::GatewayIntents,
 	CreateReply,
 	Framework,
 	FrameworkError,
 	FrameworkOptions,
+	serenity_prelude::GatewayIntents,
 };
 use serenity::all::{
 	ClientBuilder,
@@ -144,6 +145,7 @@ async fn main() {
 	toc::register_commands(&mut commands);
 	self_management::register_commands(&mut commands);
 	moderation::register_commands(&mut commands);
+	ophase::register_commands(&mut commands);
 
 	let options = FrameworkOptions {
 		commands,

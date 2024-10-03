@@ -9,29 +9,29 @@ use std::{
 use linked_hash_map::LinkedHashMap;
 use poise::serenity_prelude::ReactionType;
 use serde::{
+	Deserialize,
+	Deserializer,
 	de::{
 		Error,
 		Visitor,
 	},
-	Deserialize,
-	Deserializer,
 };
 use serde_with::{
-	serde_as,
 	DisplayFromStr,
+	serde_as,
 };
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
 	pub bot_token: String,
-	pub mongodb: String,
 	pub welcome: FileReference,
 	pub self_managment: SelfManagement,
 	pub toc: Vec<TableOfContentEntry>,
 	pub moderation: Moderation,
 	pub self_assignments: SelfAssignments,
 	pub assignments: LinkedHashMap<String, Assignment>,
+	pub o_phase: Option<OPhase>,
 }
 
 #[derive(Debug)]
@@ -95,6 +95,15 @@ pub struct Role {
 	#[serde_as(as = "DisplayFromStr")]
 	pub icon: ReactionType,
 	pub role: u64,
+}
+
+#[serde_as]
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct OPhase {
+	pub password: String,
+	pub role_name: String,
+	pub channel_name: String,
 }
 
 impl Display for FileReference {
