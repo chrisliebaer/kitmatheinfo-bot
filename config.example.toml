@@ -1,9 +1,6 @@
 # Discord bot token
 bot_token = "YOUR BOT TOKEN HIER"
 
-# MongoDB host
-mongodb = "mongodb://mongodb:27017" # not yet implemented
-
 # File with top level message that will be posted as welcome text.
 welcome = "welcome.md"
 

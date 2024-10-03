@@ -25,7 +25,6 @@ use serde_with::{
 #[serde(deny_unknown_fields)]
 pub struct Config {
 	pub bot_token: String,
-	pub mongodb: String,
 	pub welcome: FileReference,
 	pub self_managment: SelfManagement,
 	pub toc: Vec<TableOfContentEntry>,
