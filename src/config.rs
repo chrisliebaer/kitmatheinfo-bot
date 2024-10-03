@@ -1,10 +1,25 @@
-use std::fmt::{Display, Formatter};
-use std::fs::read_to_string;
-use serde::{Deserialize, Deserializer};
-use serde_with::{serde_as, DisplayFromStr};
+use std::{
+	fmt::{
+		Display,
+		Formatter,
+	},
+	fs::read_to_string,
+};
+
 use linked_hash_map::LinkedHashMap;
 use poise::serenity_prelude::ReactionType;
-use serde::de::{Error, Visitor};
+use serde::{
+	de::{
+		Error,
+		Visitor,
+	},
+	Deserialize,
+	Deserializer,
+};
+use serde_with::{
+	serde_as,
+	DisplayFromStr,
+};
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -89,18 +104,14 @@ impl Display for FileReference {
 }
 
 impl<'a> From<&'a FileReference> for &'a str {
-
 	fn from(f: &'a FileReference) -> Self {
 		f.content.as_str()
 	}
 }
 
 impl<'de> Deserialize<'de> for FileReference {
-	fn deserialize<D>(
-		deserializer: D
-	) -> Result<Self, D::Error> where
-		D: Deserializer<'de>,
-	{
+	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+	where D: Deserializer<'de> {
 		struct FilenameVisitor;
 		impl<'de> Visitor<'de> for FilenameVisitor {
 			type Value = FileReference;
@@ -109,14 +120,15 @@ impl<'de> Deserialize<'de> for FileReference {
 				formatter.write_str("path to readable file")
 			}
 
-			fn visit_str<E>(self, v: &str) -> Result<Self::Value, E> where E: Error {
+			fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+			where E: Error {
 				self.visit_string(v.to_owned())
 			}
 
-			fn visit_string<E>(self, filename: String) -> Result<Self::Value, E> where E: Error {
-				let content = read_to_string(&filename).map_err(|err| {
-					Error::custom(format!("file {} could not be read: {}", &filename, err))
-				})?;
+			fn visit_string<E>(self, filename: String) -> Result<Self::Value, E>
+			where E: Error {
+				let content =
+					read_to_string(&filename).map_err(|err| Error::custom(format!("file {} could not be read: {}", &filename, err)))?;
 
 				Ok(FileReference {
 					filename,

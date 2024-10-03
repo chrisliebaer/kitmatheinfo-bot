@@ -1,57 +1,80 @@
-#[allow(unused_imports)]
-use log::{trace, debug, info, warn, error};
 use std::collections::HashSet;
-use crate::{AppState, Context, Error};
-use poise::{serenity_prelude::{
-	GuildChannel,
-	ButtonStyle,
-	CreateActionRow,
-	ChannelType,
-	CreateSelectMenu,
-	CreateSelectMenuOption,
-	RoleId,
-	MessageComponentInteraction
-}, Command};
-use poise::serenity_prelude::{CreateComponents, Message};
+
+#[allow(unused_imports)]
+use log::{
+	debug,
+	error,
+	info,
+	trace,
+	warn,
+};
+use poise::{
+	serenity_prelude::{
+		ButtonStyle,
+		ChannelType,
+		CreateActionRow,
+		CreateSelectMenu,
+		CreateSelectMenuOption,
+		GuildChannel,
+		Message,
+		RoleId,
+	},
+	Command,
+	CreateReply,
+};
+use serenity::{
+	all::{
+		ComponentInteraction,
+		ComponentInteractionDataKind,
+		CreateButton,
+		CreateInteractionResponse,
+		CreateInteractionResponseMessage,
+		CreateMessage,
+		CreateSelectMenuKind,
+		EditMessage,
+	},
+	builder::{
+		CreateAllowedMentions,
+		EditInteractionResponse,
+	},
+};
+
+use crate::{
+	AppState,
+	Context,
+	Error,
+};
 
 pub fn register_commands(commands: &mut Vec<Command<AppState, Error>>) {
 	commands.push(post_welcome_message());
 	commands.push(update_welcome_message());
 }
 
-fn populate_components(app: &AppState, c: &mut CreateComponents) {
+fn get_toc_buttons(app: &AppState) -> Vec<CreateActionRow> {
 	// adds buttons for toc records
-	c.create_action_row(|row| {
-		row.create_button(|button| {
-			button
-					.custom_id("assignments")
-					.label(&app.config.self_assignments.label)
-					.emoji(app.config.self_assignments.icon.clone())
-					.style(ButtonStyle::Success)
-		});
-		for entry in &app.config.toc {
-			row.create_button(|button| {
-				button
-						.custom_id(format!("toc:{}", entry.file.filename))
-						.label(&entry.label)
-						.emoji(entry.icon.to_owned())
-						.style(ButtonStyle::Primary)
-			});
-		}
-		row
-	});
+	let mut buttons = Vec::new();
+	buttons.push(
+		CreateButton::new("assignments")
+			.label(&app.config.self_assignments.label)
+			.emoji(app.config.self_assignments.icon.clone())
+			.style(ButtonStyle::Success),
+	);
+	for entry in &app.config.toc {
+		buttons.push(
+			CreateButton::new(format!("toc:{}", entry.file.filename))
+				.label(&entry.label)
+				.emoji(entry.icon.to_owned())
+				.style(ButtonStyle::Primary),
+		);
+	}
+	vec![CreateActionRow::Buttons(buttons)]
 }
 
 /// Aktualisiert die verlinkte Nachricht auf die aktuelle Begrüßung.
-#[poise::command(
-prefix_command,
-rename = "rewelcome",
-required_permissions = "MANAGE_GUILD")
-]
+#[poise::command(prefix_command, rename = "rewelcome", required_permissions = "MANAGE_GUILD")]
 async fn update_welcome_message(
 	ctx: Context<'_>,
-	#[description = "Die Nachricht, welche aktualisiert werden soll."]
-	mut message: Message,
+	#[description = "Die Nachricht, welche aktualisiert werden soll."] mut message: Message,
 ) -> Result<(), Error> {
 	let app = ctx.data();
 
@@ -62,33 +85,32 @@ async fn update_welcome_message(
 		return Err(Error::from("target message was not posted in this guild"));
 	}
 
-	message.edit(&ctx, |m| {
-		m
+	message
+		.edit(
+			&ctx,
+			EditMessage::default()
 				.content(app.config.welcome.to_string())
 				.suppress_embeds(true)
-				.components(|c| {
-					populate_components(app, c);
-					c
-				})
-	}).await?;
+				.components(get_toc_buttons(app)),
+		)
+		.await?;
 
-	ctx.send(|m| {
-		m.content("Nachricht erfolgreich aktualisiert.").ephemeral(true)
-	}).await?;
+	ctx
+		.send(
+			CreateReply::default()
+				.content("Nachricht erfolgreich aktualisiert.")
+				.ephemeral(true),
+		)
+		.await?;
 
-	Result::Ok(())
+	Ok(())
 }
 
 /// Erstellt die Begrüßungsnachricht im angegebenen Channel.
-#[poise::command(
-prefix_command,
-rename = "welcome",
-required_permissions = "MANAGE_GUILD")
-]
+#[poise::command(prefix_command, rename = "welcome", required_permissions = "MANAGE_GUILD")]
 async fn post_welcome_message(
 	ctx: Context<'_>,
-	#[description = "Der Channel in dem Nachricht erstellt werden soll."]
-	channel: GuildChannel,
+	#[description = "Der Channel in dem Nachricht erstellt werden soll."] channel: GuildChannel,
 ) -> Result<(), Error> {
 	let app = ctx.data();
 
@@ -101,18 +123,22 @@ async fn post_welcome_message(
 		return Err(Error::from("not a text channel"));
 	}
 
-	channel.send_message(&ctx, |m| {
-		m
+	channel
+		.send_message(
+			&ctx,
+			CreateMessage::default()
 				.content(app.config.welcome.to_string())
-				.components(|c| {
-					populate_components(app, c);
-					c
-				})
-	}).await?;
+				.components(get_toc_buttons(app)),
+		)
+		.await?;
 
-	ctx.send(|m| {
-		m.content("Nachricht erfolgreich erstellt").ephemeral(true)
-	}).await?;
+	ctx
+		.send(
+			CreateReply::default()
+				.content("Nachricht erfolgreich erstellt")
+				.ephemeral(true),
+		)
+		.await?;
 
 	Ok(())
 }
@@ -120,26 +146,44 @@ async fn post_welcome_message(
 pub async fn handle_assign_click<'a>(
 	ctx: &'a poise::serenity_prelude::Context,
 	app: &'a AppState,
-	interaction: &'a MessageComponentInteraction,
+	interaction: &'a ComponentInteraction,
 ) -> Result<(), Error> {
 	let data = &interaction.data;
+	let ComponentInteractionDataKind::StringSelect {
+		values: selected_role_strings,
+	} = &data.kind
+	else {
+		panic!("invalid select type")
+	};
 
 	// toc buttons are identified as `toc:$file`
 	let custom_id = data.custom_id.as_str();
-	let id = custom_id.splitn(2, ":").last()
-			.ok_or(format!("Unknown format in toc custom_id: {}", custom_id))?;
+	let id = custom_id
+		.splitn(2, ":")
+		.last()
+		.ok_or(format!("Unknown format in toc custom_id: {}", custom_id))?;
 
 	let assignment = app.config.assignments.get(id).ok_or(format!("Unknown assignment: {}", id))?;
-	let member = interaction.member.as_ref().ok_or("not executed in guild, no way to assign roles")?;
+	let member = interaction
+		.member
+		.as_ref()
+		.ok_or("not executed in guild, no way to assign roles")?;
 
 	// calculate ids of all roles in assignment
 	let all_roles = &assignment.roles.iter().map(|a| a.role).collect::<HashSet<_>>();
 
 	// menu options contain corresponding roles, so extract them
-	let selected = data.values.iter().map(|x| x.parse::<u64>()).collect::<Result<HashSet<u64>, _>>()?;
+	let selected = selected_role_strings
+		.iter()
+		.map(|x| x.parse::<u64>())
+		.collect::<Result<HashSet<u64>, _>>()?;
 
 	// current roles of user, important since discord will reject modifications with preexisting role assignments
-	let current = member.roles.iter().map(|x| x.as_u64().to_owned()).collect::<HashSet<u64>>();
+	let current = member
+		.roles
+		.iter()
+		.map(|x| u64::from(*x).to_owned())
+		.collect::<HashSet<u64>>();
 
 	// remove all roles which are not selected, but only if user currently has them
 	let removed_roles = &(all_roles - &selected) & &current;
@@ -150,37 +194,59 @@ pub async fn handle_assign_click<'a>(
 	// convert these sets to vec since we need slices for api calls
 	// TODO: this is probably a much nicer way to accomplish the same thing
 	let new_roles = new_roles.into_iter().map(|x| x.to_owned().into()).collect::<Vec<RoleId>>();
-	let removed_roles = removed_roles.into_iter().map(|x| x.to_owned().into()).collect::<Vec<RoleId>>();
+	let removed_roles = removed_roles
+		.into_iter()
+		.map(|x| x.to_owned().into())
+		.collect::<Vec<RoleId>>();
 
 	// we need to react to the interaction since role update could cause too much delay
-	interaction.create_interaction_response(ctx, |resp| {
-		resp.interaction_response_data(|d| {
-			d
-					.content(format!("Ich aktualisiere deine Rollen..."))
-					.flags(poise::serenity_prelude::InteractionResponseFlags::EPHEMERAL)
-		})
-	}).await?;
+	interaction
+		.create_response(
+			ctx,
+			CreateInteractionResponse::Message(
+				CreateInteractionResponseMessage::new()
+					.content("Ich aktualisiere deine Rollen...".to_string())
+					.flags(poise::serenity_prelude::InteractionResponseFlags::EPHEMERAL),
+			),
+		)
+		.await?;
 
-	// apply role modifications (remove comes first to prevent permission excalation between updates)
-	let mut member = member.clone();
+	// apply role modifications (remove comes first to prevent permission escalation between updates)
+	let member = member.clone();
 	member.remove_roles(ctx, removed_roles.as_slice()).await.unwrap();
 	member.add_roles(ctx, new_roles.as_slice()).await.unwrap();
 
 	// update initial response and notify user about success
-	interaction.edit_original_interaction_response(ctx, |resp| {
-		let new_roles = new_roles.into_iter().map(|role| format!("<@&{}>", role.to_string())).collect::<Vec<_>>().join(", ");
-		let removed_roles = removed_roles.into_iter().map(|role| format!("<@&{}>", role.to_string())).collect::<Vec<_>>().join(", ");
-
-		resp
-				// disable mention since we are abount to mention A LOT of roles
-				.allowed_mentions(|mentions| { mentions.empty_parse() })
-				.content(format!(r#"
+	{
+		let new_roles = new_roles
+			.into_iter()
+			.map(|role| format!("<@&{role}>"))
+			.collect::<Vec<_>>()
+			.join(", ");
+		let removed_roles = removed_roles
+			.into_iter()
+			.map(|role| format!("<@&{role}>"))
+			.collect::<Vec<_>>()
+			.join(", ");
+		let content = format!(
+			r#"
 **Rollen erfolgreich angepasst**
 Neue Rollen: {}
 
 Entfernte Rollen: {}
-				"#, new_roles, removed_roles))
-	}).await.unwrap();
+				"#,
+			new_roles, removed_roles
+		);
+
+		interaction
+			.edit_response(
+				ctx,
+				EditInteractionResponse::new()
+					.allowed_mentions(CreateAllowedMentions::default())
+					.content(content),
+			)
+			.await?;
+	}
 
 	Ok(())
 }
@@ -188,25 +254,34 @@ Entfernte Rollen: {}
 pub async fn handle_toc_click<'a>(
 	ctx: &'a poise::serenity_prelude::Context,
 	app: &'a AppState,
-	interaction: &'a MessageComponentInteraction,
+	interaction: &'a ComponentInteraction,
 ) -> Result<(), Error> {
 	let data = &interaction.data;
 
 	// assign buttons are identified as `assign:$file`
 	let custom_id = data.custom_id.as_str();
-	let file = custom_id.splitn(2, ":").last()
-			.ok_or(format!("Unknown format in assign custom_id: {}", custom_id))?;
+	let file = custom_id
+		.splitn(2, ":")
+		.last()
+		.ok_or(format!("Unknown format in assign custom_id: {}", custom_id))?;
 
-	let entry = app.config.toc.iter()
-			.find(|f| f.file.filename == file).ok_or(format!("Unknown toc file: {}", file))?;
+	let entry = app
+		.config
+		.toc
+		.iter()
+		.find(|f| f.file.filename == file)
+		.ok_or(format!("Unknown toc file: {}", file))?;
 
-	interaction.create_interaction_response(ctx, |f| {
-		f.interaction_response_data(|d| {
-			d
-					.content(entry.file.content.as_str())
-					.flags(poise::serenity_prelude::InteractionResponseFlags::EPHEMERAL)
-		})
-	}).await?;
+	interaction
+		.create_response(
+			ctx,
+			CreateInteractionResponse::Message(
+				CreateInteractionResponseMessage::new()
+					.content(entry.file.content.to_string())
+					.flags(poise::serenity_prelude::InteractionResponseFlags::EPHEMERAL),
+			),
+		)
+		.await?;
 
 	Ok(())
 }
@@ -214,51 +289,48 @@ pub async fn handle_toc_click<'a>(
 pub async fn print_assignments<'a>(
 	ctx: &'a poise::serenity_prelude::Context,
 	app: &'a AppState,
-	interaction: &'a MessageComponentInteraction,
+	interaction: &'a ComponentInteraction,
 ) -> Result<(), Error> {
-	interaction.create_interaction_response(ctx, |f| {
-		f.interaction_response_data(|d| {
-			d
-					.content(&app.config.self_assignments.prolog)
-					.flags(poise::serenity_prelude::InteractionResponseFlags::EPHEMERAL)
-					.components(|c| {
+	let mut rows = Vec::new();
 
-						// add one row for each role assignment
-						for (id, assignment) in &app.config.assignments {
-							let mut menu = CreateSelectMenu::default();
-							menu.custom_id(format!("assign:{}", id));
-							menu.placeholder(&assignment.title);
-							menu.min_values(0);
-							menu.max_values(assignment.roles.len() as u64);
-							menu.options(|opts| {
-								for role in &assignment.roles {
-									let mut option = CreateSelectMenuOption::default();
-									option.label(&role.label);
-									option.emoji(role.icon.clone());
-									option.value(&role.role);
-									if let Some(subscript) = &role.subscript {
-										option.description(subscript);
-									}
+	// add one row for each role assignment
+	for (id, assignment) in &app.config.assignments {
+		let mut options = Vec::new();
+		for role in &assignment.roles {
+			let mut option = CreateSelectMenuOption::new(role.label.clone(), role.role.to_string()).emoji(role.icon.clone());
+			if let Some(subscript) = &role.subscript {
+				option = option.description(subscript);
+			}
 
-									// preselect roles which user already has
-									if let Some(member) = &interaction.member {
-										let roles = &member.roles;
-										option.default_selection(roles.contains(&role.role.into()));
-									}
+			// preselect roles which user already has
+			if let Some(member) = &interaction.member {
+				let roles = &member.roles;
+				option = option.default_selection(roles.contains(&role.role.into()));
+			}
+			options.push(option);
+		}
 
-									opts.add_option(option);
-								}
-								opts
-							});
-
-							let mut row = CreateActionRow::default();
-							row.add_select_menu(menu);
-							c.add_action_row(row);
-						};
-						c
-					})
+		let menu = CreateSelectMenu::new(format!("assign:{}", id), CreateSelectMenuKind::String {
+			options,
 		})
-	}).await?;
+		.placeholder(&assignment.title)
+		.min_values(0)
+		.max_values(assignment.roles.len() as u8);
+
+		rows.push(CreateActionRow::SelectMenu(menu));
+	}
+
+	interaction
+		.create_response(
+			ctx,
+			CreateInteractionResponse::Message(
+				CreateInteractionResponseMessage::new()
+					.content(app.config.self_assignments.prolog.to_string())
+					.flags(poise::serenity_prelude::InteractionResponseFlags::EPHEMERAL)
+					.components(rows),
+			),
+		)
+		.await?;
 
 	Ok(())
 }
