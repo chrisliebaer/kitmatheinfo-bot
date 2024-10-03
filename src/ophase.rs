@@ -15,9 +15,9 @@ use serenity::all::{
 };
 
 use crate::{
-	config::OPhase,
 	AppState,
 	Error,
+	config::OPhase,
 };
 
 pub fn register_commands(commands: &mut Vec<Command<AppState, Error>>) {
