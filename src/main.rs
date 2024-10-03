@@ -1,17 +1,30 @@
 mod config;
-mod toc;
-mod self_management;
 mod moderation;
+mod self_management;
+mod toc;
 
-use env_logger::Target;
-#[allow(unused_imports)]
-use log::{trace, debug, info, warn, error};
-use config::Config;
 use std::{
 	fs::File,
 	io::Read,
 };
-use poise::{FrameworkError, Event, Framework, serenity_prelude::GatewayIntents, FrameworkOptions};
+
+use config::Config;
+use env_logger::Target;
+#[allow(unused_imports)]
+use log::{
+	debug,
+	error,
+	info,
+	trace,
+	warn,
+};
+use poise::{
+	serenity_prelude::GatewayIntents,
+	Event,
+	Framework,
+	FrameworkError,
+	FrameworkOptions,
+};
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, AppState, Error>;
@@ -28,15 +41,13 @@ async fn help(
 	#[autocomplete = "poise::builtins::autocomplete_command"]
 	command: Option<String>,
 ) -> Result<(), Error> {
-	poise::builtins::help(
-		ctx,
-		command.as_deref(),
-		poise::builtins::HelpConfiguration {
-			extra_text_at_bottom: "Mit 'help <Befehl>' bekommst du weitere Hilfe zu Befehlen. Außerdem kannst du Befehle auch über einen Slash (/) verwenden.",
-			show_context_menu_commands: true,
-			..Default::default()
-		},
-	).await?;
+	poise::builtins::help(ctx, command.as_deref(), poise::builtins::HelpConfiguration {
+		extra_text_at_bottom: "Mit 'help <Befehl>' bekommst du weitere Hilfe zu Befehlen. Außerdem kannst du Befehle auch über \
+		                       einen Slash (/) verwenden.",
+		show_context_menu_commands: true,
+		..Default::default()
+	})
+	.await?;
 	Ok(())
 }
 
@@ -47,19 +58,20 @@ async fn register(ctx: Context<'_>, #[flag] global: bool) -> Result<(), Error> {
 	Ok(())
 }
 
-/// Generic listener on top of poise to handle all incoming discord events. Especially button interactions, which pose doesn't support yet.
-async fn listener<'a>(
-	ctx: &'a poise::serenity_prelude::Context,
-	ev: &'a Event<'a>,
-	app: &'a AppState,
-) -> Result<(), Error> {
+/// Generic listener on top of poise to handle all incoming discord events. Especially button interactions, which pose
+/// doesn't support yet.
+async fn listener<'a>(ctx: &'a poise::serenity_prelude::Context, ev: &'a Event<'a>, app: &'a AppState) -> Result<(), Error> {
 	use poise::{
-		Event::InteractionCreate,
-		Event::Ready,
 		serenity_prelude::Interaction::MessageComponent,
+		Event::{
+			InteractionCreate,
+			Ready,
+		},
 	};
 	match ev {
-		InteractionCreate { interaction } => {
+		InteractionCreate {
+			interaction,
+		} => {
 			match interaction {
 				MessageComponent(component_interaction) => {
 					let custom_id = component_interaction.data.custom_id.as_str();
@@ -70,12 +82,14 @@ async fn listener<'a>(
 					} else if custom_id.starts_with("assign:") {
 						toc::handle_assign_click(ctx, app, component_interaction).await?;
 					}
-				}
+				},
 				_ => (),
 			};
 			trace!("Incoming interaction: {:?}", interaction)
-		}
-		Ready { data_about_bot } => info!("Bot is ready: {:?}", data_about_bot),
+		},
+		Ready {
+			data_about_bot,
+		} => info!("Bot is ready: {:?}", data_about_bot),
 		_ => (),
 	};
 	Ok(())
@@ -84,33 +98,36 @@ async fn listener<'a>(
 async fn on_error(error: FrameworkError<'_, AppState, Error>) {
 	use FrameworkError::*;
 	match error {
-		Setup { error, .. } => panic!("Failed to start bot: {:?}", error),
-		Command { error, ctx } => {
-			let send_result = ctx.send(|m| {
-				m.embed(|e| {
-					e.title("Fehler").description(&error)
-				}).ephemeral(true)
-			}).await;
+		Setup {
+			error, ..
+		} => panic!("Failed to start bot: {:?}", error),
+		Command {
+			error,
+			ctx,
+		} => {
+			let send_result = ctx
+				.send(|m| m.embed(|e| e.title("Fehler").description(&error)).ephemeral(true))
+				.await;
 			if let Err(_) = send_result {
 				error!("Error while handling error: {:?}", error);
 			};
 			error!("Error in command `{}`: {:?}", ctx.command().name, error);
-		}
+		},
 		error => {
 			if let Err(e) = poise::builtins::on_error(error).await {
 				println!("Error while handling error: {}", e)
 			}
-		}
+		},
 	}
 }
 
 #[tokio::main]
 async fn main() {
 	env_logger::builder()
-			.parse_default_env()
-			.format_timestamp(None)
-			.target(Target::Stdout)
-			.init();
+		.parse_default_env()
+		.format_timestamp(None)
+		.target(Target::Stdout)
+		.init();
 
 	let args = std::env::args().collect::<Vec<_>>();
 	let file = args.get(1).expect("No config file given");
@@ -121,10 +138,7 @@ async fn main() {
 
 	info!("This is a log message and we need it!");
 
-	let mut commands: Vec<_> = vec![
-		help(),
-		register(),
-	];
+	let mut commands: Vec<_> = vec![help(), register()];
 
 	toc::register_commands(&mut commands);
 	self_management::register_commands(&mut commands);
@@ -132,9 +146,7 @@ async fn main() {
 
 	let options = FrameworkOptions {
 		commands,
-		event_handler: |ctx, ev, _framework, app| {
-			Box::pin(listener(ctx, ev, app))
-		},
+		event_handler: |ctx, ev, _framework, app| Box::pin(listener(ctx, ev, app)),
 		prefix_options: poise::PrefixFrameworkOptions {
 			mention_as_prefix: true,
 			..Default::default()
@@ -154,16 +166,22 @@ async fn main() {
 	};
 
 	Framework::builder()
-			.token(&config.bot_token)
-			.intents(GatewayIntents::GUILDS |
-					GatewayIntents::GUILD_MESSAGES |
-					GatewayIntents::DIRECT_MESSAGES |
-					GatewayIntents::GUILD_INTEGRATIONS)
-			.setup(move |_ctx, _ready, _framework| Box::pin(async move {
+		.token(&config.bot_token)
+		.intents(
+			GatewayIntents::GUILDS
+				| GatewayIntents::GUILD_MESSAGES
+				| GatewayIntents::DIRECT_MESSAGES
+				| GatewayIntents::GUILD_INTEGRATIONS,
+		)
+		.setup(move |_ctx, _ready, _framework| {
+			Box::pin(async move {
 				Ok(AppState {
 					config,
 				})
-			}))
-			.options(options)
-			.run().await.unwrap();
+			})
+		})
+		.options(options)
+		.run()
+		.await
+		.unwrap();
 }
