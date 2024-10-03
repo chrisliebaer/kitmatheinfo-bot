@@ -30,6 +30,8 @@ use serenity::all::{
 	ClientBuilder,
 	CreateEmbed,
 	FullEvent,
+	TeamMemberRole,
+	User,
 };
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
@@ -57,10 +59,66 @@ async fn help(
 	Ok(())
 }
 
+async fn is_bot_team_admin_or_owner(ctx: Context<'_>, potential_owner: &User) -> Result<bool, Error> {
+	let app_info = ctx.http().get_current_application_info().await?;
+
+	// Normal owner
+	if let Some(user) = app_info.owner {
+		if user.id == potential_owner.id {
+			return Ok(true);
+		}
+	}
+
+	if let Some(team) = app_info.team {
+		// Team owner
+		if team.owner_user_id == potential_owner.id {
+			return Ok(true);
+		}
+
+		// Admin in team
+		for member in team.members {
+			if member.user.id != potential_owner.id {
+				continue;
+			}
+			if matches!(member.role, TeamMemberRole::Admin) {
+				return Ok(true);
+			}
+		}
+	}
+
+	Ok(false)
+}
+
 /// Aktualisiert die registrierten Befehle des Bots. Kann nur vom Besitzer ausgeführt werden.
 #[poise::command(prefix_command, hide_in_help)]
 async fn register(ctx: Context<'_>, #[flag] global: bool) -> Result<(), Error> {
-	poise::builtins::register_application_commands(ctx, global).await?;
+	let is_bot_owner = is_bot_team_admin_or_owner(ctx, ctx.author()).await?;
+	if !is_bot_owner {
+		ctx.say("Can only be used by bot owner").await?;
+		return Ok(());
+	}
+
+	let commands_builder = poise::builtins::create_application_commands(&ctx.framework().options().commands);
+	let num_commands = commands_builder.len();
+
+	if global {
+		ctx.say(format!("Registering {num_commands} global commands...",)).await?;
+		poise::serenity_prelude::Command::set_global_commands(ctx, commands_builder).await?;
+	} else {
+		let guild_id = match ctx.guild_id() {
+			Some(x) => x,
+			None => {
+				ctx.say("Must be called in guild").await?;
+				return Ok(());
+			},
+		};
+
+		ctx.say(format!("Registering {num_commands} guild commands...")).await?;
+		guild_id.set_commands(ctx, commands_builder).await?;
+	}
+
+	ctx.say("Done!").await?;
+
 	Ok(())
 }
 
