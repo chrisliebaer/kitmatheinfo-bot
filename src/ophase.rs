@@ -70,7 +70,7 @@ async fn ersti(ctx: poise::ApplicationContext<'_, AppState, Error>) -> Result<()
 		return Ok(());
 	};
 
-	if response.password != config.password {
+	if response.password.to_lowercase() != config.password.to_lowercase() {
 		info!(
 			"Falsches Passwort '{}': {} ({})",
 			response.password,
