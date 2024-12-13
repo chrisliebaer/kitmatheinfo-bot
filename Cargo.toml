@@ -5,13 +5,13 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-log = "0.4"
-env_logger = { version = "0.11"}
-serde = { version = "1.0", features = ["derive"] }
-serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
-serde_with = "3.10.0"
+log = "0.4.22"
+env_logger = { version = "0.11.5"}
+serde = { version = "1.0.216", features = ["derive"] }
+serde_json = { version = "1.0.133", default-features = false, features = ["alloc"] }
+serde_with = "3.11.0"
 toml = "0.8.19"
-tokio = { version = "1.40", features = ["macros", "rt-multi-thread", "time"] }
-serenity = { version = "0.12", default-features = false, features = ["builder", "cache", "client", "gateway", "model", "utils", "rustls_backend", "unstable_discord_api"] }
-poise = "0.6"
-linked-hash-map = { version = "0.5", features = ["serde_impl"]}
+tokio = { version = "1.42.0", features = ["macros", "rt-multi-thread", "time"] }
+serenity = { version = "0.12.4", default-features = false, features = ["builder", "cache", "client", "gateway", "model", "utils", "rustls_backend", "unstable_discord_api"] }
+poise = "0.6.1"
+linked-hash-map = { version = "0.5.6", features = ["serde_impl"]}
