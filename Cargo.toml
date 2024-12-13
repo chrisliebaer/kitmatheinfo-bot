@@ -2,7 +2,13 @@
 name = "kitmatheinfo-bot"
 authors = ["Chrisliebär <mail@chrisliebaer.de>"]
 version = "0.1.0"
+license = "MIT"
+license-file = "LICENSE"
 edition = "2021"
+repository = "https://github.com/chrisliebaer/kitmatheinfo-bot"
+keywords = ["discord", "bot"]
+categories = ["chatbot", "discord"]
+description = "A Discord bot for the KIT Mathe/Info Discord server."
 
 [dependencies]
 log = "0.4.22"
