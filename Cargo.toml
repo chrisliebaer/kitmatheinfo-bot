@@ -3,7 +3,6 @@ name = "kitmatheinfo-bot"
 authors = ["Chrisliebär <mail@chrisliebaer.de>"]
 version = "0.1.0"
 license = "MIT"
-license-file = "LICENSE"
 edition = "2021"
 repository = "https://github.com/chrisliebaer/kitmatheinfo-bot"
 keywords = ["discord", "bot"]

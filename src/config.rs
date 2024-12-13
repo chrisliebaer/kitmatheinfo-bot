@@ -122,7 +122,7 @@ impl<'de> Deserialize<'de> for FileReference {
 	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 	where D: Deserializer<'de> {
 		struct FilenameVisitor;
-		impl<'de> Visitor<'de> for FilenameVisitor {
+		impl Visitor<'_> for FilenameVisitor {
 			type Value = FileReference;
 
 			fn expecting(&self, formatter: &mut Formatter) -> std::fmt::Result {
