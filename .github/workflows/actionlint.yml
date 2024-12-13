@@ -10,4 +10,4 @@ on:
 
 jobs:
   actionlint:
-    uses: chrisliebaer/workflows/.github/workflows/actionlint.yml@master
+    uses: chrisliebaer/workflows/.github/workflows/actionlint.yml@dc631a02f4ab7e576765fb1e770bfad81985c446
