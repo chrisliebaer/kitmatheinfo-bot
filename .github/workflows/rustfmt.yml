@@ -10,4 +10,4 @@ on:
 
 jobs:
   rustfmt:
-    uses: chrisliebaer/.github/.github/workflows/rustfmt.yml@dc631a02f4ab7e576765fb1e770bfad81985c446
+    uses: chrisliebaer/.github/.github/workflows/rustfmt.yml@master
