@@ -1,4 +1,7 @@
-This is a custom-built Discord bot for the https://kitmatheinfo.de/ community. The bot is tailored to provide specific features which aren't covered by existing solutions. It might therefore not be particularly useful for the general public.
+> [!IMPORTANT]
+> This repository is no longer maintained. For the current version, please refer to the fork in [kitmatheinfo/kitmatheinfo-bot](https://github.com/kitmatheinfo/kitmatheinfo-bot).
+
+This is a custom build Discord bot for the https://kitmatheinfo.de/ community. The bot is tailored to provide specific features which aren't covered by existing solutions. It might therefore not be particular usefull for the general public.
 
 # Features
 * Information board, using buttons to reduce clutter from overly long walls of text.
