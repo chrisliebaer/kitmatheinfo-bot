@@ -1,49 +1,22 @@
 use std::collections::HashSet;
 
 #[allow(unused_imports)]
-use log::{
-	debug,
-	error,
-	info,
-	trace,
-	warn,
-};
+use log::{debug, error, info, trace, warn};
 use poise::{
 	serenity_prelude::{
-		ButtonStyle,
-		ChannelType,
-		CreateActionRow,
-		CreateSelectMenu,
-		CreateSelectMenuOption,
-		GuildChannel,
-		Message,
-		RoleId,
+		ButtonStyle, ChannelType, CreateActionRow, CreateSelectMenu, CreateSelectMenuOption, GuildChannel, Message, RoleId,
 	},
-	Command,
-	CreateReply,
+	Command, CreateReply,
 };
 use serenity::{
 	all::{
-		ComponentInteraction,
-		ComponentInteractionDataKind,
-		CreateButton,
-		CreateInteractionResponse,
-		CreateInteractionResponseMessage,
-		CreateMessage,
-		CreateSelectMenuKind,
-		EditMessage,
+		ComponentInteraction, ComponentInteractionDataKind, CreateButton, CreateInteractionResponse,
+		CreateInteractionResponseMessage, CreateMessage, CreateSelectMenuKind, EditMessage,
 	},
-	builder::{
-		CreateAllowedMentions,
-		EditInteractionResponse,
-	},
+	builder::{CreateAllowedMentions, EditInteractionResponse},
 };
 
-use crate::{
-	AppState,
-	Context,
-	Error,
-};
+use crate::{AppState, Context, Error};
 
 pub fn register_commands(commands: &mut Vec<Command<AppState, Error>>) {
 	commands.push(post_welcome_message());
@@ -310,12 +283,10 @@ pub async fn print_assignments<'a>(
 			options.push(option);
 		}
 
-		let menu = CreateSelectMenu::new(format!("assign:{}", id), CreateSelectMenuKind::String {
-			options,
-		})
-		.placeholder(&assignment.title)
-		.min_values(0)
-		.max_values(assignment.roles.len() as u8);
+		let menu = CreateSelectMenu::new(format!("assign:{}", id), CreateSelectMenuKind::String { options })
+			.placeholder(&assignment.title)
+			.min_values(0)
+			.max_values(assignment.roles.len() as u8);
 
 		rows.push(CreateActionRow::SelectMenu(menu));
 	}

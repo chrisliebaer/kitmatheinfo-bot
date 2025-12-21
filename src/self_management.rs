@@ -1,48 +1,18 @@
-use std::time::{
-	Duration,
-	SystemTime,
-};
+use std::time::{Duration, SystemTime};
 
 #[allow(unused_imports)]
-use log::{
-	debug,
-	error,
-	info,
-	trace,
-	warn,
-};
+use log::{debug, error, info, trace, warn};
 use poise::{
-	serenity_prelude::{
-		ChannelId,
-		CreateEmbed,
-		GuildChannel,
-		GuildId,
-		Mention,
-		Mentionable,
-		User,
-		UserId,
-	},
-	Command,
-	CreateReply,
+	serenity_prelude::{ChannelId, CreateEmbed, GuildChannel, GuildId, Mention, Mentionable, User, UserId},
+	Command, CreateReply,
 };
-use serde::{
-	Deserialize,
-	Serialize,
-};
+use serde::{Deserialize, Serialize};
 use serenity::{
-	all::{
-		CreateChannel,
-		CreateMessage,
-	},
+	all::{CreateChannel, CreateMessage},
 	builder::EditChannel,
 };
 
-use crate::{
-	config::SelfManagement,
-	AppState,
-	Context,
-	Error,
-};
+use crate::{config::SelfManagement, AppState, Context, Error};
 
 const CHANNEL_EDIT_TIMEOUT: Duration = Duration::from_secs(10);
 
@@ -401,9 +371,7 @@ fn inject_ownership(topic: &str, user: &User, app: &AppState) -> String {
 		return topic.to_string();
 	}
 
-	let meta = ChannelMeta {
-		owner: user.id,
-	};
+	let meta = ChannelMeta { owner: user.id };
 	let json = serde_json::to_string(&meta).expect("failed to serialize ownership meta");
 	format!("{}\n\n{}", topic, json)
 }
@@ -526,20 +494,21 @@ impl ChannelMeta {
 mod channel_meta_serde {
 	use std::str::FromStr;
 
-	use serde::{
-		Deserializer,
-		Serializer,
-	};
+	use serde::{Deserializer, Serializer};
 
 	use super::*;
 
 	pub fn serialize<S>(user_id: &UserId, s: S) -> Result<S::Ok, S::Error>
-	where S: Serializer {
+	where
+		S: Serializer,
+	{
 		s.serialize_str(&user_id.mention().to_string())
 	}
 
 	pub fn deserialize<'de, D>(d: D) -> Result<UserId, D::Error>
-	where D: Deserializer<'de> {
+	where
+		D: Deserializer<'de>,
+	{
 		let s: &str = Deserialize::deserialize(d)?;
 		let mention = Mention::from_str(s).map_err(|err| serde::de::Error::custom(format!("Failed to parse mention: {}", err)))?;
 

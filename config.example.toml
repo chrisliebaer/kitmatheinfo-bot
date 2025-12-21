@@ -71,3 +71,4 @@ report_channel = 123456789
 password = "foobar"
 role_name = "Random garbage"
 channel_name = "updates"
+invite_code = "aaaBBBcccD"

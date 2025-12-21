@@ -1,25 +1,15 @@
 use std::{
-	fmt::{
-		Display,
-		Formatter,
-	},
+	fmt::{Display, Formatter},
 	fs::read_to_string,
 };
 
 use linked_hash_map::LinkedHashMap;
 use poise::serenity_prelude::ReactionType;
 use serde::{
-	de::{
-		Error,
-		Visitor,
-	},
-	Deserialize,
-	Deserializer,
+	de::{Error, Visitor},
+	Deserialize, Deserializer,
 };
-use serde_with::{
-	serde_as,
-	DisplayFromStr,
-};
+use serde_with::{serde_as, DisplayFromStr};
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -104,6 +94,7 @@ pub struct OPhase {
 	pub password: String,
 	pub role_name: String,
 	pub channel_name: String,
+	pub invite_code: String,
 }
 
 impl Display for FileReference {
@@ -120,7 +111,9 @@ impl<'a> From<&'a FileReference> for &'a str {
 
 impl<'de> Deserialize<'de> for FileReference {
 	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-	where D: Deserializer<'de> {
+	where
+		D: Deserializer<'de>,
+	{
 		struct FilenameVisitor;
 		impl Visitor<'_> for FilenameVisitor {
 			type Value = FileReference;
@@ -130,19 +123,20 @@ impl<'de> Deserialize<'de> for FileReference {
 			}
 
 			fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-			where E: Error {
+			where
+				E: Error,
+			{
 				self.visit_string(v.to_owned())
 			}
 
 			fn visit_string<E>(self, filename: String) -> Result<Self::Value, E>
-			where E: Error {
+			where
+				E: Error,
+			{
 				let content =
 					read_to_string(&filename).map_err(|err| Error::custom(format!("file {} could not be read: {}", &filename, err)))?;
 
-				Ok(FileReference {
-					filename,
-					content,
-				})
+				Ok(FileReference { filename, content })
 			}
 		}
 
